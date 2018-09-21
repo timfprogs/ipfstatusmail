@@ -53,7 +53,8 @@ for sending the message, and the type of the message.
   - **Days of Month** and **Days of Week** Defines the days that the email will be sent.  Only one of these options needs to
   be set - they are OR'd together.  At least one checkbox must be selected from these two sets.
   - **Hours** Defines the time of day that the email will be sent.  At least one checkbox must be selected.
-  The remaining fields define the contents of the email.
+  
+    The remaining fields define the contents of the email.
   
 8. Enable the schedule.
   
