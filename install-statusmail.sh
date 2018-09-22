@@ -13,7 +13,7 @@ VERSION=0
 
 phase2="no"
 
-if [[ ! -d $updatedir ]]; then mkdir -p $updatedir; fi
+if [[ ! -d $settingsdir ]]; then mkdir -p $settingsdir; fi
 
 while getopts ":2hH" opt; do
   case $opt in
