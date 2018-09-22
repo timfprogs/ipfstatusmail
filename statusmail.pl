@@ -157,7 +157,7 @@ foreach my $schedule (keys %schedules)
 
   debug 1, "Schedule $schedule due";
 
-  execute_schedule( $schedule, Network$schedules{$schedule} );
+  execute_schedule( $schedule, $schedules{$schedule} );
 }
 
 closelog;
