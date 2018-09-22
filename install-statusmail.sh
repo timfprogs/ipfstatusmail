@@ -59,7 +59,7 @@ if [[ $phase2 == "no" ]]; then
     echo --
     echo Download $name
     if [[ ! -d $path ]]; then mkdir -p $path; fi
-    if [[ $name != "." ]]; then wget "https://github.com/timfprogs/statusmail/raw/$branch/$name" -O $path/$name; fi
+    if [[ $name != "." ]]; then wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/$name" -O $path/$name; fi
     chown $owner $path/$name
     chmod $mode $path/$name
   done < "MANIFEST"
