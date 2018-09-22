@@ -1,0 +1,5 @@
+$subipfire->{'65.statusmail'} = {'caption' => $Lang::tr{'statusmail status emails'},
+                                 'uri'     => '/cgi-bin/statusmail.cgi',
+                                 'title'   => $Lang::tr{'statusmail status emails'},
+                                 'enabled' => 1,
+                                };

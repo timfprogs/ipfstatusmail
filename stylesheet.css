@@ -1,0 +1,30 @@
+h1 { color: #fff; font-size: 3.6em; font-weight: bold; padding-top: 0.2em; padding-left: 1.7em; }
+h2, h3, h4, h5, h6 { font-size: 20px; font-weight: normal; letter-spacing: -1px; text-align: left; }
+h3 { font-size: 18px; color: #000000; }
+h4 { font-size: 16px; color: #505050; }
+table { border-spacing: 0; border: 1px solid lightgrey; width: 90%; margin: auto; }
+img {width: 90% }
+th {color: #000000; border-top: 1px solid lightgrey; border-bottom: 1px solid lightgrey; background: #cccccc; padding-left: 0.5em; padding-right: 0.5em; text-align: center; }
+tr:nth-child(even) { background-color: #D6D6D6; }
+tr:nth-child(odd) { background-color: #F0F0F0;}
+td { padding-left: 0.5em; padding-right: 0.5em; }
+div.
+div.head { height: 70px; margin: 0 auto; }
+.error { background-color: #993333; color: white; font-weight: bold; text-align: center; }
+.ok { background-color: #339933; color: white; font-weight: bold; text-align: center; }
+body {
+  /* SVG as background image (IE9/Chrome/Safari/Opera) */
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxIDEiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiPgo8bGluZWFyR3JhZGllbnQgaWQ9Imc2ODQiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMTAwJSIgeTE9IjEwMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgo8c3RvcCBzdG9wLWNvbG9yPSIjMDAwMDAwIiBvZmZzZXQ9IjAiLz48c3RvcCBzdG9wLWNvbG9yPSIjODgwNDAwIiBvZmZzZXQ9IjU3JSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSJ1cmwoI2c2ODQpIiAvPgo8L3N2Zz4=);
+
+  background-image: linear-gradient( bottom, #000000 0%, #880400 57% );
+
+  background-attachment: fixed;
+
+  font-size: 9pt;
+  font-family: "DejaVu Sans", Helvetica, sans-serif;
+}
+div.bigbox { margin: 0 auto; margin-top: 0.5em; padding: 1.5em 2em 0 2em; background: white 0px 0px repeat-x; border: 1px solid black;
+  border-radius: 3px 3px 3px 3px; -webkit-border-radius: 3px 3px 3px 3px; }
+div.section { border: 1px solid silver; padding: 1em 2em 1em 2em; margin-bottom: 1em; clear: both; }
+div.subsection { margin-left: 2%; clear: both; }
+div.item { margin-left: 2%; clear: both; }
