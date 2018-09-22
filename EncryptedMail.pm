@@ -38,7 +38,7 @@ package EncryptedMail;
 # Configuration variables
 ############################################################################
 
-my $gpg = "sudo -u nobody /usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
+my $gpg = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
 
 ############################################################################
 # Function prototypes
