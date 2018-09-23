@@ -19,3 +19,4 @@ plugins/packfire.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/statistics_firewall.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/status_system_ps.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/status_system_services.pm /var/ipfire/statusmail nobody.nobody 0644
+plugins/ssh.pm /var/ipfire/statusmail nobody.nobody 0644
