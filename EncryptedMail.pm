@@ -242,7 +242,6 @@ sub send( $@ )
     chomp $line;
     $line =~ s/\s*$/\r\n/;
 
-print "Sign: write line\n";
     print $to_gpg $line;
   }
 
