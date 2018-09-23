@@ -13,7 +13,7 @@ VERSION=0
 
 phase2="no"
 
-if [[ ! -d $updatedir ]]; then mkdir -p $updatedir; fi
+if [[ ! -d $settingsdir ]]; then mkdir -p $settingsdir; fi
 
 while getopts ":2hH" opt; do
   case $opt in
@@ -59,7 +59,7 @@ if [[ $phase2 == "no" ]]; then
     echo --
     echo Download $name
     if [[ ! -d $path ]]; then mkdir -p $path; fi
-    if [[ $name != "." ]]; then wget "https://github.com/timfprogs/statusmail/raw/$branch/$name" -O $path/$name; fi
+    if [[ $name != "." ]]; then wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/$name" -O $path/$name; fi
     chown $owner $path/$name
     chmod $mode $path/$name
   done < "MANIFEST"

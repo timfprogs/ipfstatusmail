@@ -1,5 +1,6 @@
 . /var/ipfire/statusmail nobody.nobody 0755
 . /var/ipfire/statusmail/plugins nobody.nobody 0755
+. /var/ipfire/statusmail/keys nobody.nobody 0700
 install-statusmail.sh . root.root 0755
 statusmail.en.pl /var/ipfire/addon-lang root.root 0004
 statusmail.cgi /srv/web/ipfire/cgi-bin root.root 0755
@@ -10,7 +11,7 @@ EncryptedMail.pm /var/ipfire/statusmail nobody.nobody 0644
 StatusMail.pm /var/ipfire/statusmail nobody.nobody 0644
 stylesheet.css /var/ipfire/statusmail nobody.nobody 0644
 TestStatusMail.pm /var/ipfire/statusmail nobody.nobody 0644
-generate_signature.sh /var/ipfire/statusmail nobody.nobody 0644
+generate_signature.sh /var/ipfire/statusmail nobody.nobody 0755
 test_plugin.pl /var/ipfire/statusmail nobody.nobody 0755
 plugins/graphs.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/intrusion_detection_system.pm /var/ipfire/statusmail nobody.nobody 0644
