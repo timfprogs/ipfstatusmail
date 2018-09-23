@@ -104,8 +104,11 @@ sub processes( $$ )
 
   unshift @sorted, $header;
 
-  $message->add_title( $Lang::tr{'processes'} );
-  $message->add_table( @sorted );
+  if (@sorted > 2)
+  {
+    $message->add_title( $Lang::tr{'processes'} );
+    $message->add_table( @sorted );
+  }
 }
 
 1;

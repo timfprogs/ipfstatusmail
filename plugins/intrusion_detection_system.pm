@@ -253,7 +253,7 @@ sub alerts( $$ )
     push @table, [ $sid, $priority, $message, $count, $percent, $first, $last ];
   }
 
-  if (@table > 1)
+  if (@table > 2)
   {
     $self->add_table( @table );
   }

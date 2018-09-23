@@ -28,6 +28,7 @@ use warnings;
 use HTML::Entities;
 use MIME::Lite;
 use IPC::Open2;
+use IO::Select;
 
 require "/var/ipfire/general-functions.pl";
 require "${General::swroot}/lang.pl";
@@ -38,7 +39,7 @@ package EncryptedMail;
 # Configuration variables
 ############################################################################
 
-my $gpg = "sudo -u nobody /usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
+my $gpg = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
 
 ############################################################################
 # Function prototypes
@@ -241,6 +242,7 @@ sub send( $@ )
     chomp $line;
     $line =~ s/\s*$/\r\n/;
 
+print "Sign: write line\n";
     print $to_gpg $line;
   }
 
@@ -314,28 +316,26 @@ sub send( $@ )
 
     # Build a mask to check if there's any output from GPG later
 
-    my $encrypted = '';
+    my $reader = IO::Select->new;
 
-    my ($rin,  $win,  $ein)  = ('', '', '');
-    my ($rout, $wout, $eout) = ('', '', '');
+    my $encrypted = '';
 
     # Start GPG and pipe the signed message to it
 
     $childpid = open2( $from_gpg, $to_gpg, $cmd ) or die "Can't fork GPG child: $!";
 
-    vec( $rin, $from_gpg, 1) = 1;
-    $ein = $rin;
+    $reader->add( $from_gpg );
 
     my $signed_data = $signed_message->as_string;
+    my $read;
 
     foreach my $line (split /[\n]/, $signed_data)
     {
       chomp $line;
       $line =~ s/\s*$/\r\n/;
-
       print $to_gpg $line;
 
-      while (select( $rout=$rin, undef, $eout=$ein, 0))
+      while ($reader->can_read( 0 ))
       {
         $encrypted .= <$from_gpg>;
       }
@@ -343,7 +343,7 @@ sub send( $@ )
 
     close $to_gpg;
 
-    $encrypted .= $_ while <$from_gpg>;
+    $encrypted .= $_ while (<$from_gpg>);
 
     # Create the message that will contain the data and its signature
 

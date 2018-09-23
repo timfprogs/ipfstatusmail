@@ -276,7 +276,7 @@ sub addresses( $$ )
     push @table, [ $address, $country, $count, $percent, $first, $last ];
   }
 
-  if (@table > 1)
+  if (@table > 2)
   {
     $self->add_table( @table );
   }
@@ -306,7 +306,7 @@ sub ports( $$ )
     push @table, [ $port, $count, $percent, $first, $last ];
   }
 
-  if (@table > 1)
+  if (@table > 2)
   {
     $self->add_table( @table );
   }
@@ -338,7 +338,7 @@ sub countries( $$ )
     push @table, [ $full_country, $count, $percent, $first, $last ];
   }
 
-  if (@table > 1)
+  if (@table > 2)
   {
     $self->add_table( @table );
   }
