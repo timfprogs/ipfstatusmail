@@ -82,7 +82,7 @@ my %mailsettings  = ();
 # Main function
 ############################################################################
 
-openlog( "logmail", "nofatal", LOG_USER);
+openlog( "statusmail", "nofatal", LOG_USER);
 log_message LOG_INFO, "Starting log and status email processing";
 
 # Check for existence of settings files
