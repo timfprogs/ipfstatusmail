@@ -48,7 +48,7 @@ sub BEGIN
                        'option'     => { 'type'   => 'integer',
                                          'name'   => $Lang::tr{'statusmail statistics firewall min count'},
                                          'min'    => 1,
-                                         'max'    => 1000 });
+                                         'max'    => 1000 } );
 
   main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'firewall'},
@@ -57,7 +57,7 @@ sub BEGIN
                        'option'     => { 'type'   => 'integer',
                                          'name'   => $Lang::tr{'statusmail statistics firewall min count'},
                                          'min'    => 1,
-                                         'max'    => 1000 });
+                                         'max'    => 1000 } );
 
   main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'firewall'},
@@ -66,7 +66,7 @@ sub BEGIN
                        'option'     => { 'type'   => 'integer',
                                          'name'   => $Lang::tr{'statusmail statistics firewall min count'},
                                          'min'    => 1,
-                                         'max'    => 1000 });
+                                         'max'    => 1000 } );
 }
 
 ############################################################################
