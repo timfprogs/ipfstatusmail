@@ -186,11 +186,10 @@ sub get_log( $$ )
       next unless ($line =~ m/ipfire sshd/);
 
       # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
-      my ($type, $user, $from) = $line =~ m/(\w+) password for (.+) from (.+) port/;
-
-      next unless ($user);
-
-      $info{$type}{"$user||$from"}++;
+      if (my ($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
+      {
+        $info{$type}{"$user||$from"}++;
+      }
     }
 
     close IN;
@@ -249,38 +248,6 @@ sub errors( $$ )
     my ($user, $from) = split /\|\|/, $who;
 
     push @table, [ $user, $from, $count ];
-  }
-
-  if (@table > 2)
-  {
-    $self->add_table( @table );
-  }
-}
-
-#------------------------------------------------------------------------------
-
-sub countries( $$ )
-{
-  my ($self, $min_count) = @_;
-  my @table;
-
-  push @table, ['<', '|', '|', '|', '|'];
-  push @table, [ $Lang::tr{'country'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
-
-  my $stats = get_log( $self, '/var/log/messages' );
-
-  foreach my $country (sort { $$stats{'by_country'}{$b}{'count'} <=> $$stats{'by_country'}{$a}{'count'} } keys %{ $$stats{'by_country'} } )
-  {
-    my $count   = $$stats{'by_country'}{$country}{'count'};
-    my $first   = $$stats{'by_country'}{$country}{'first'};
-    my $last    = $$stats{'by_country'}{$country}{'last'};
-    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
-
-    last if ($count < $min_count);
-
-    my $full_country = GeoIP::get_full_country_name( $country) || $country;
-
-    push @table, [ $full_country, $count, $percent, $first, $last ];
   }
 
   if (@table > 2)

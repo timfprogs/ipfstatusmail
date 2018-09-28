@@ -197,12 +197,19 @@ sub execute_schedule( $$ )
 
   # Create message
 
-  my $message = new StatusMail( 'format'   => $$schedule{'format'},
-                                'subject'  => $$schedule{'subject'},
-                                'to'       => [ @contacts],
-                                'sender'   => $mailsettings{'SENDER'},
-                                'contacts' => \%contacts,
-                                'lines'    => $$schedule{'lines'} );
+  my $message = new StatusMail( 'format'     => $$schedule{'format'},
+                                'subject'    => $$schedule{'subject'},
+                                'to'         => [ @contacts],
+                                'sender'     => $mailsettings{'SENDER'},
+                                'contacts'   => \%contacts,
+                                'lines'      => $$schedule{'lines'},
+                                'stylesheet' => $stylesheet );
+
+  if (not $message)
+  {
+    log_message LOG_WARNING, "Failed to create message object: $!";
+    return;
+  }
 
   $message->calculate_period( $$schedule{'period-value'}, $$schedule{'period-unit'} );
 
@@ -210,23 +217,25 @@ sub execute_schedule( $$ )
 
   foreach my $section ( sort keys %sections )
   {
-    debug 2, "Section $section";
+    debug 3, "Section $section";
     $message->add_section( $section );
 
     foreach my $subsection ( sort keys %{ $sections{$section} } )
     {
-      debug 2, "Subsection $subsection";
+      debug 3, "Subsection $subsection";
       $message->add_subsection( $subsection );
 
       foreach my $item ( sort keys %{ $sections{$section}{$subsection} } )
       {
-        debug 2, "Item $item";
+        debug 3, "Item $item";
 
         my $key = "$section||$subsection||$item";
 
         next unless (exists $$schedule{"enable_$key"} and $$schedule{"enable_$key"} eq 'on');
         next unless ($sections{$section}{$subsection}{$item}{'format'} eq 'both' or
                      $sections{$section}{$subsection}{$item}{'format'} eq $$schedule{'format'});
+
+        debug 2, "Process item $section :: $subsection :: $item";
 
         $message->add_title( $item );
 
@@ -348,7 +357,7 @@ sub log_message( $$ )
   my ($level, $message) = @_;
 
   print "($level) $message\n" if (-t STDIN);
-#  syslog( $level, $message );
+  syslog( $level, $message );
 }
 
 

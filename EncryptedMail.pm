@@ -104,15 +104,22 @@ sub new( @ )
 
   if ($self->{'format'} eq 'html')
   {
-    $self->{'message'} = "<html>\n<head>\n<style>\n";
+    $self->{'message'} = "<html>\n<head>\n";
 
-    open STYLE, '<', 'stylesheet.css' or die "Can't open stylesheet: $!";
+    if ($self->{'stylesheet'})
+    {
+      $self->{'message'} .= "<style>\n";
 
-    $self->{'message'} .= $_ while <STYLE>;
+      open STYLE, '<', $self->{'stylesheet'} or die "Can't open stylesheet: $!";
 
-    close STYLE;
+      $self->{'message'} .= $_ while <STYLE>;
 
-    $self->{'message'} .= "</style>\n</head>\n<body>\n<div class='bigbox'>\n";
+      close STYLE;
+
+      $self->{'message'} .= "</style>\n";
+    }
+
+    $self->{'message'} .= "</head>\n<body>\n<div class='bigbox'>\n";
   }
 
   $self->{'to'} =~ s/\|/ /g if ($self->{'to'});
