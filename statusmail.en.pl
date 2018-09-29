@@ -59,5 +59,8 @@
 'statusmail statistics firewall min count' => 'Minimum count',
 'statusmail period' => 'Period',
 'statusmail ids alerts' => 'Alerts',
-'statusmail ids min priority' => 'Minimum priority'
+'statusmail ids min priority' => 'Minimum priority',
+'statusmail logins' => 'Logins',
+'statusmail errors' => 'Errors',
+'statusmail statistics urlfilter min count' => 'Minimum count'
 );
