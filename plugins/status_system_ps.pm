@@ -44,7 +44,8 @@ sub processes( $$ );
 
 sub BEGIN
 {
-  main::add_mail_item( 'section'    => $Lang::tr{'status'},
+  main::add_mail_item( 'ident'      => 'status-system-processes',
+                       'section'    => $Lang::tr{'status'},
                        'subsection' => $Lang::tr{'system'},
                        'item'       => $Lang::tr{'processes'},
                        'function'   => \&processes,

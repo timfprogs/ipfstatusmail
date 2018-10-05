@@ -46,15 +46,17 @@ sub cache( $;$ );
 
 # Local functions
 
-sub show_keys();
+sub show_encryption_keys();
 sub show_contacts();
 sub show_schedules();
+sub show_signing_key();
 sub check_key( $ );
 sub get_keys();
 sub save_settings( $$ );
 sub read_settings( $$ );
 sub check_schedule( % );
 sub clean( $ );
+sub toggle_on_off( $ );
 
 ###############################################################################
 # Configuration variables
@@ -226,7 +228,7 @@ elsif ($cgiparams{'CONTACT_ACTION'} eq 'toggle contact')
 {
   my $key = $cgiparams{'KEY'};
 
-  $contacts{$key}{'enable'} = 1 - $contacts{$key}{'enable'};
+  toggle_on_off( $contacts{$key}{'enable'} );
   $save_contacts = 1;
 }
 
@@ -251,7 +253,7 @@ elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'toggle schedule')
 {
   my $key = $cgiparams{'KEY'};
 
-  $schedules{$key}{'enable'} = 1 - $schedules{$key}{'enable'};
+  toggle_on_off( $schedules{$key}{'enable'} );
 
   $save_schedules = 1;
 }
@@ -613,7 +615,7 @@ END
       print "<tr bgcolor='$color{'color22'}'>";
     }
 
-    if ($contacts{$contact}{'enable'})
+    if ($contacts{$contact}{'enable'} eq 'on')
     {
       $gif = 'on.gif';
       $gdesc = $Lang::tr{'click to disable'};
@@ -753,7 +755,7 @@ END
       <tr>
         <td width='20%'>$Lang::tr{'statusmail period covered'}:</td>
         <td>
-          <input type='number' name='period-value' min='1' max='365' value='$schedule{'period-value'}' pattern='type\d+'>
+          <input type='number' name='period-value' min='1' max='365' value='$schedule{'period-value'}' pattern='type\\d+'>
           <select name='period-unit' size='1'>
             <option value='hours'$select_hours>$Lang::tr{'hours'}</option>
             <option value='days'$select_days>$Lang::tr{'days'}</option>
@@ -763,7 +765,7 @@ END
         </td>
         <td>$Lang::tr{'statusmail lines per item'}</td>
         <td>
-          <input type='number' name='lines' min='1' max='1000' value='$schedule{'lines'}' pattern='\d+'>
+          <input type='number' name='lines' min='1' max='1000' value='$schedule{'lines'}' pattern='\\d+'>
         </td>
       </tr>
     </table>
@@ -889,7 +891,7 @@ END
 
       foreach my $item (sort keys %{ $items{$section}{$subsection} } )
       {
-        my $name    = "$section||$subsection||$item";
+        my $name    = $items{$section}{$subsection}{$item}{'ident'};
         my $class   = $items{$section}{$subsection}{$item}{'format'};
         my $hidden  = '';
         my $checked = '';
@@ -919,7 +921,7 @@ END
 
             $value = $schedule{"value_$name"} if (exists $schedule{"value_$name"});
 
-            print "<td><input type='number' name='$key' min='$min' max='$max' value='$value' pattern='\d+'></td>\n";
+            print "<td><input type='number' name='$key' min='$min' max='$max' value='$value' pattern='\\d+'></td>\n";
           }
           else
           {
@@ -932,7 +934,7 @@ END
             foreach my $option (@{ $items{$section}{$subsection}{$item}{'option'}{'values'} })
             {
               my $select = '';
-              $select    = 'selected' if ($current eq $option);
+              $select    = ' selected' if ($current eq $option);
 
               my ($name, $value) = split /:/, $option;
               $value ||= $name;
@@ -996,7 +998,7 @@ END
       print "<tr bgcolor='$color{'color22'}'>";
     }
 
-    if ($schedules{$schedule}{'enable'})
+    if ($schedules{$schedule}{'enable'} eq 'on')
     {
       $gif = 'on.gif';
       $gdesc = $Lang::tr{'click to disable'};
@@ -1260,7 +1262,7 @@ sub check_schedule( % )
     {
       foreach my $item (sort keys %{ $items{$section}{$subsection} } )
       {
-        my $name   = "$section||$subsection||$item";
+        my $name   = $items{$section}{$subsection}{$item}{'ident'};
         my $format = $items{$section}{$subsection}{$item}{'format'};
 
         if (($format eq 'html' and $params{'format'} eq 'text') or
@@ -1400,7 +1402,8 @@ sub add_mail_item( %)
     $params{'format'} = 'both';
   }
 
-  $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'format' => $params{'format'} };
+  $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'format' => $params{'format'},
+                                                                         'ident'  => $params{'ident'} };
 
   if ($params{'option'})
   {
@@ -1439,6 +1442,18 @@ sub clean( $ )
   my ($string) = @_;
 
   return HTML::Entities::encode_entities( $string );
+}
+
+
+#------------------------------------------------------------------------------
+# sub toggle_on_off( string )
+#
+# Toggles between 'on' and 'off'.
+#------------------------------------------------------------------------------
+
+sub toggle_on_off( $ )
+{
+  $_[0] = $_[0] eq 'on' ? 'off' : 'on';
 }
 
 

@@ -42,15 +42,15 @@ sub get_log( $ );
 ############################################################################
 
 use constant { SEC    => 0,
-  						 MIN    => 1,
-							 HOUR   => 2,
-							 MDAY   => 3,
-							 MON    => 4,
-							 YEAR   => 5,
-							 WDAY   => 6,
-							 YDAY   => 7,
-							 ISDST  => 8,
-							 MONSTR => 9 };
+               MIN    => 1,
+               HOUR   => 2,
+               MDAY   => 3,
+               MON    => 4,
+               YEAR   => 5,
+               WDAY   => 6,
+               YDAY   => 7,
+               ISDST  => 8,
+               MONSTR => 9 };
 
 ############################################################################
 # BEGIN Block
@@ -60,7 +60,8 @@ use constant { SEC    => 0,
 
 sub BEGIN
 {
-  main::add_mail_item( 'section'    => $Lang::tr{'services'},
+  main::add_mail_item( 'ident'      => 'services-ids-alerts',
+                       'section'    => $Lang::tr{'services'},
                        'subsection' => $Lang::tr{'intrusion detection system'},
                        'item'       => $Lang::tr{'statusmail ids alerts'},
                        'function'   => \&alerts,
@@ -149,7 +150,7 @@ sub get_log( $ )
       next unless ($current_line);
 
       my ($gid, $sid, $message, $prio, $mon, $day, $hour, $min, $sec, $src, $dest) =
-        $current_line =~ m/\[(\d+):(\d+):\d+\]\s*(.*)\s+\[\*\*\].*\[Priority:\s(\d+)\].*(\d+)\/(\d+)-(\d+):(\d+):(\d+)\.\d+\s+(\d+\.\d+\.\d+\.\d+(?::\d+)?) -> (\d+\.\d+\.\d+\.\d+(?::\d+)?)/;
+        $current_line =~ m/\[(\d+):(\d+):\d+\]\s*(.*)\s+\[\*\*\].*\[Priority:\s(\d+)\].*?(\d+)\/(\d+)-(\d+):(\d+):(\d+)\.\d+\s+(\d+\.\d+\.\d+\.\d+(?::\d+)?) -> (\d+\.\d+\.\d+\.\d+(?::\d+)?)/;
 
       $current_line = '';
 

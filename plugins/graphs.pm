@@ -69,90 +69,174 @@ sub BEGIN
     {
       if ($netsettings{'RED_DEV'} eq 'red0')
       {
-        main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'red'}, 'function' => \&red0 );
+        main::add_mail_item( %common_options,
+                            'ident'       => 'graph-network-red0',
+                            'subsection'  => $Lang::tr{'network'},
+                            'item'        => $Lang::tr{'red'},
+                            'function'    => \&red0 );
       }
       else
       {
-        main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'red'}, 'function' => \&ppp0 );
+        main::add_mail_item( %common_options,
+                            'ident'       => 'graph-network-ppp0',
+                            'subsection'  => $Lang::tr{'network'},
+                            'item'        => $Lang::tr{'red'},
+                            'function'    => \&ppp0 );
       }
     }
   }
   else
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'red'}, 'function' => \&ppp0 );
+    main::add_mail_item( %common_options,
+                        'ident'       => 'graph-network-ppp0',
+                        'subsection'  => $Lang::tr{'network'},
+                        'item'        => $Lang::tr{'red'},
+                        'function'    => \&ppp0 );
   }
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'green'}, 'function' => \&green0 );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-network-green0',
+                       'subsection'  => $Lang::tr{'network'},
+                       'item'        => $Lang::tr{'green'},
+                       'function'    => \&green0 );
 
   if ($config_type == 3 or $config_type == 4)
   {
     # BLUE
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'blue'}, 'function' => \&blue0 );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-network-blue0',
+                         'subsection'  => $Lang::tr{'network'},
+                         'item'        => $Lang::tr{'blue'},
+                         'function'    => \&blue0 );
   }
 
   if ($config_type == 2 or $config_type == 4)
   {
     # ORANGE
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'orange'}, 'function' => \&orange0 );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-network-orange0',
+                         'subsection'  => $Lang::tr{'network'},
+                         'item'        => $Lang::tr{'orange'},
+                         'function'    => \&orange0 );
   }
 
 
   if (-e "/var/log/rrd/collectd/localhost/interface/if_octets-ipsec0.rrd")
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => 'ipsec0', 'function' => \&ipsec0 );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-network-ipsec0',
+                         'subsection'  => $Lang::tr{'network'},
+                         'item'        => 'ipsec0',
+                         'function'    => \&ipsec0 );
   }
 
   if (-e "/var/log/rrd/collectd/localhost/interface/if_octets-tun0.rrd")
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => 'tun0', 'function' => \&tun0 );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-network-tun0',
+                         'subsection'  => $Lang::tr{'network'},
+                         'item'        => 'tun0',
+                         'function'    => \&tun0 );
   }
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'network'}, 'item' => $Lang::tr{'firewallhits'}, 'function' => \&fw_hits );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-network-fwhits',
+                       'subsection'  => $Lang::tr{'network'},
+                       'item'        => $Lang::tr{'firewallhits'},
+                       'function'    => \&fw_hits );
 
   # System
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'system'}, 'item' => "CPU $Lang::tr{'graph'}", 'function' => \&cpu_usage );
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'system'}, 'item' => "Load $Lang::tr{'graph'}", 'function' => \&cpu_load );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-system-cpu-usage',
+                       'subsection'  => $Lang::tr{'system'},
+                       'item'        => "CPU $Lang::tr{'graph'}",
+                       'function'    => \&cpu_usage );
+
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-system-cpu-load',
+                       'subsection'  => $Lang::tr{'system'},
+                       'item'        => "Load $Lang::tr{'graph'}",
+                       'function'    => \&cpu_load );
 
   if ( -e "$mainsettings{'RRDLOG'}/collectd/localhost/cpufreq/cpufreq-0.rrd")
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'system'}, 'item' => "CPU $Lang::tr{'frequency'}", 'function' => \&cpu_freq );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-system-cpu-frequency',
+                         'subsection'  => $Lang::tr{'system'},
+                         'item'        => "CPU $Lang::tr{'frequency'}",
+                         'function'    => \&cpu_freq );
   }
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'system'}, 'item' => "Load $Lang::tr{'graph'}", 'function' => \&cpu_load );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-system-load',
+                       'subsection'  => $Lang::tr{'system'},
+                       'item'        => "Load $Lang::tr{'graph'}",
+                       'function'    => \&cpu_load );
 
   # Hardware
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'hardware graphs'}, 'item' => "Load $Lang::tr{'graph'}", 'function' => \&cpu_load );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-hardware-cpu-load',
+                       'subsection'  => $Lang::tr{'hardware graphs'},
+                       'item'        => "Load $Lang::tr{'graph'}",
+                       'function'    => \&cpu_load );
 
   if ( `ls $mainsettings{'RRDLOG'}/collectd/localhost/thermal-thermal_zone* 2>/dev/null` )
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'hardware graphs'}, 'item' => "ACPI Thermal-Zone Temp", 'function' => \&therm );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-hardware-acpi-zone-temp',
+                         'subsection'  => $Lang::tr{'hardware graphs'},
+                         'item'        => "ACPI Thermal-Zone Temp",
+                         'function'    => \&therm );
   }
 
   if ( `ls $mainsettings{'RRDLOG'}/collectd/localhost/sensors-*/temperature-* 2>/dev/null` )
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'hardware graphs'}, 'item' => "hwtemp", 'function' => \&hwtemp );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-hardware-temp',
+                         'subsection'  => $Lang::tr{'hardware graphs'},
+                         'item'        => "hwtemp",
+                         'function'    => \&hwtemp );
   }
 
   if ( `ls $mainsettings{'RRDLOG'}/collectd/localhost/sensors-*/fanspeed-* 2>/dev/null` )
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'hardware graphs'}, 'item' => "hwfan", 'function' => \&hwfan );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-hardware-fan',
+                         'subsection'  => $Lang::tr{'hardware graphs'},
+                         'item'        => "hwfan",
+                         'function'    => \&hwfan );
   }
 
   if ( `ls $mainsettings{'RRDLOG'}/collectd/localhost/sensors-*/voltage-* 2>/dev/null` )
   {
-    main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'hardware graphs'}, 'item' => "hwvolt", 'function' => \&hwvolt );
+    main::add_mail_item( %common_options,
+                         'ident'       => 'graph-hardware-volt',
+                         'subsection'  => $Lang::tr{'hardware graphs'},
+                         'item'        => "hwvolt",
+                         'function'    => \&hwvolt );
   }
 
   # Entropy
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'entropy'}, 'item' => $Lang::tr{'entropy'}, 'function' => \&entropy );
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-entropy',
+                       'subsection'  => $Lang::tr{'entropy'},
+                       'item'        => $Lang::tr{'entropy'},
+                       'function'    => \&entropy );
 
   # Memory
 
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'memory'}, 'item' => $Lang::tr{'memory'}, 'function' => \&memory );
-  main::add_mail_item( %common_options, 'subsection' => $Lang::tr{'memory'}, 'item' => $Lang::tr{'swap'}, 'function' => \&swap );
+  main::add_mail_item( %common_options,
+                      'ident'       => 'graph-memory-memory',
+                      'subsection'  => $Lang::tr{'memory'}, 'item' => $Lang::tr{'memory'}, 'function' => \&memory );
+
+  main::add_mail_item( %common_options,
+                       'ident'       => 'graph-memory-swap',
+                       'subsection'  => $Lang::tr{'memory'},
+                       'item'        => $Lang::tr{'swap'},
+                       'function'    => \&swap );
 
 # 	updatediskgraph( disk, period )
 # 	updatehddgraph( disk, period )          sd? - temperature

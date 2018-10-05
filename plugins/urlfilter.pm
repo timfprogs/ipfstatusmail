@@ -39,7 +39,8 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'statistics-urlfilter-client',
+                       'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'urlfilter url filter'},
                        'item'       => $Lang::tr{'urlfilter client'},
                        'function'   => \&clients,
@@ -48,7 +49,8 @@ sub BEGIN
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'statistics-urlfilter-destination',
+                       'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'urlfilter url filter'},
                        'item'       => $Lang::tr{'destination'},
                        'function'   => \&destinations,

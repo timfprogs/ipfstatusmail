@@ -148,7 +148,7 @@ $mday = 1 << $mday;
 
 foreach my $schedule (keys %schedules)
 {
-  next unless ($schedules{$schedule}{'enable'});        # Must be enabled
+  next unless ($schedules{$schedule}{'enable'} eq 'on');        # Must be enabled
 
   next unless ($schedules{$schedule}{'mday'} & $mday or # Must be due today
                $schedules{$schedule}{'wday'} & $wday);
@@ -229,7 +229,7 @@ sub execute_schedule( $$ )
       {
         debug 3, "Item $item";
 
-        my $key = "$section||$subsection||$item";
+        my $key = $sections{$section}{$subsection}{$item}{'ident'};
 
         next unless (exists $$schedule{"enable_$key"} and $$schedule{"enable_$key"} eq 'on');
         next unless ($sections{$section}{$subsection}{$item}{'format'} eq 'both' or
@@ -320,7 +320,8 @@ sub add_mail_item( % )
   $params{'format'} = 'both' unless (exists $params{'format'});
 
   $sections{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'function' => $params{'function'},
-                                                                            'format'   => $params{'format'} };
+                                                                            'format'   => $params{'format'},
+                                                                            'ident'    => $params{'ident'} };
 }
 
 

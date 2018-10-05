@@ -53,7 +53,8 @@ my $read_netsettings = 0;
 
 sub BEGIN
 {
-  main::add_mail_item( 'section'    => $Lang::tr{'status'},
+  main::add_mail_item( 'ident'      => 'status-system-services',
+                       'section'    => $Lang::tr{'status'},
                        'subsection' => $Lang::tr{'system'},
                        'item'       => $Lang::tr{'services'},
                        'function'   => \&services );

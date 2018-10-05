@@ -41,7 +41,8 @@ require "${General::swroot}/geoip-functions.pl";
 
 sub BEGIN
 {
-  main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'statistics-firewall-ipaddresses',
+                       'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{'ip address'},
                        'function'   => \&addresses,
@@ -50,7 +51,8 @@ sub BEGIN
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'statistics-firewall-ports',
+                       'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{port},
                        'function'   => \&ports,
@@ -59,7 +61,8 @@ sub BEGIN
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'statistics-firewall-countries',
+                       'section'    => $Lang::tr{'statusmail statistics'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{country},
                        'function'   => \&countries,
@@ -254,7 +257,8 @@ sub addresses( $$ )
 
   my $stats = get_log( $self, '/var/log/messages' );
 
-  foreach my $address (sort { $$stats{'by_address'}{$b}{'count'} <=> $$stats{'by_address'}{$a}{'count'} } keys %{ $$stats{'by_address'} } )
+  foreach my $address (sort { $$stats{'by_address'}{$b}{'count'} <=> $$stats{'by_address'}{$a}{'count'} ||
+                              ncmp( $b, $a ) } keys %{ $$stats{'by_address'} } )
   {
     my $count   = $$stats{'by_address'}{$address}{'count'};
     my $country = GeoIP::lookup( $address );
@@ -294,7 +298,8 @@ sub ports( $$ )
 
   my $stats = get_log( $self, '/var/log/messages' );
 
-  foreach my $port (sort { $$stats{'by_port'}{$b}{'count'} <=> $$stats{'by_port'}{$a}{'count'} } keys %{ $$stats{'by_port'} } )
+  foreach my $port (sort { $$stats{'by_port'}{$b}{'count'} <=> $$stats{'by_port'}{$a}{'count'} ||
+                           ncmp( $b, $a ) } keys %{ $$stats{'by_port'} } )
   {
     my $count   = $$stats{'by_port'}{$port}{'count'};
     my $first   = $$stats{'by_port'}{$port}{'first'};
