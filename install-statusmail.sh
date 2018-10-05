@@ -8,9 +8,6 @@ temp_dir="$TMP"
 # Branch to use from repository
 branch=master
 
-# Default version
-VERSION=0
-
 phase2="no"
 
 if [[ ! -d $settingsdir ]]; then mkdir -p $settingsdir; fi
@@ -22,23 +19,6 @@ while getopts ":2hH" opt; do
   *) echo "Usage: $0 [-2]"; exit 1;;
   esac
 done
-
-if [[ $phase2 == "no" ]]; then
-  # Check to see if there's a new version available
-
-  echo Check for new version
-
-  wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/VERSION"
-
-  NEW_VERSION=`cat VERSION`
-  rm VERSION
-
-  # Set phase2 to yes to stop download of update
-
-  if [[ $VERSION -eq $NEW_VERSION ]]; then
-    phase2="yes"
-  fi
-fi
 
 if [[ $phase2 == "no" ]]; then
 
