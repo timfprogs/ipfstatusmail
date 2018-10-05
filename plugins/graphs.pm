@@ -230,7 +230,9 @@ sub BEGIN
 
   main::add_mail_item( %common_options,
                       'ident'       => 'graph-memory-memory',
-                      'subsection'  => $Lang::tr{'memory'}, 'item' => $Lang::tr{'memory'}, 'function' => \&memory );
+                      'subsection'  => $Lang::tr{'memory'},
+                      'item'        => $Lang::tr{'memory'},
+                      'function'    => \&memory );
 
   main::add_mail_item( %common_options,
                        'ident'       => 'graph-memory-swap',
