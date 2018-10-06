@@ -933,11 +933,11 @@ END
 
             foreach my $option (@{ $items{$section}{$subsection}{$item}{'option'}{'values'} })
             {
-              my $select = '';
-              $select    = ' selected' if ($current eq $option);
-
               my ($name, $value) = split /:/, $option;
               $value ||= $name;
+
+              my $select = '';
+              $select    = ' selected' if ($current eq $value);
 
               my $text   = clean( $name );
 
@@ -1416,7 +1416,7 @@ sub add_mail_item( %)
 
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'}   = $params{'option'}{'type'};
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'values'} = $params{'option'}{'values'};
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'} = $params{'option'}{'name'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'}   = $params{'option'}{'name'};
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
