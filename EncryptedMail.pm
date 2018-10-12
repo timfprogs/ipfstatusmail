@@ -91,6 +91,7 @@ sub new( @ )
                    'in_item'                => 0,
                    'section'                => '',
                    'subsection'             => '',
+                   'subject'                => 'Encrypted email',
                    'empty'                  => 1,
                    'skip_blank_sections'    => 0,
                    'skip_blank_subsections' => 0,
@@ -119,7 +120,13 @@ sub new( @ )
       $self->{'message'} .= "</style>\n";
     }
 
-    $self->{'message'} .= "</head>\n<body>\n<div class='bigbox'>\n";
+    $self->{'message'} .= "</head>\n<body>\n<div id='header'><h1>";
+    $self->{'message'} .= $self->{subject};
+    $self->{'message'} .= "</h1></div>\n<div class='bigbox'>\n";
+  }
+  else
+  {
+    $self->{'message'} .= "$self->{subject}\n\n"
   }
 
   $self->{'to'} =~ s/\|/ /g if ($self->{'to'});

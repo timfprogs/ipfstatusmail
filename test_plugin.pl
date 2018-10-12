@@ -32,7 +32,8 @@ require "${General::swroot}/lang.pl";
 
 # Variables
 
-my $testdir = '/var/ipfire/statusmail/test';
+my $testdir    = '/var/ipfire/statusmail/test';
+my $stylesheet = '/var/ipfire/statusmail/stylesheet.css';
 my %items;
 our $plugin;
 
@@ -83,7 +84,7 @@ my $format       = choices( 'Message format', 'html', 'text' );
 
 # Create message
 
-my $message = new TestStatusMail( format => $format );
+my $message = new TestStatusMail( format => $format, stylesheet => $stylesheet, subject => 'Test email' );
 
 get_period ( $message );
 
