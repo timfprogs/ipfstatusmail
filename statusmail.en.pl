@@ -56,11 +56,11 @@
 'statusmail no period covered' => 'No period covered specified',
 'statusmail no period covered' => 'No lines per item specified',
 'statusmail statistics' => 'Statistics',
-'statusmail statistics firewall min count' => 'Minimum count',
+'statusmail firewall min count' => 'Minimum count',
 'statusmail period' => 'Period',
 'statusmail ids alerts' => 'Alerts',
 'statusmail ids min priority' => 'Minimum priority',
 'statusmail logins' => 'Logins',
 'statusmail errors' => 'Errors',
-'statusmail statistics urlfilter min count' => 'Minimum count'
+'statusmail urlfilter min count' => 'Minimum count'
 );
