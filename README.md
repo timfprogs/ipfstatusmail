@@ -4,8 +4,10 @@ Status emails for IPFire
 Provides a service to send emails containing information about the status of an IPFire installation.  The contents of the emails
 and the schedule that they are sent on can be defined on a WUI.  The emails can be encrypted with GPG.
 
-The encrypted emails can be decrypted with Thunderbird + Enigmail on Linux and K-9 Mail + OpenKeychain on Android.  Other clients
-haven't been tested.
+The encrypted emails can be decrypted with Thunderbird + Enigmail on Linux and K-9 Mail + OpenKeychain on Android.  Other
+clients haven't been tested.
+
+**<span style="color:red;">Note: This is still a work in progress</span>**
 
 ## To install
 
@@ -32,7 +34,8 @@ configure the addon.
 
 3. Import the signing key into your email client.
 
-4. Export the encryption public key from your email client and paste it into the Encryption Key box.  Click on the 'Import' button.
+4. Export the encryption public key from your email client and paste it into the Encryption Key box.  Click on the 'Import'
+button.
 The key will be imported and shown in the list of installed keys.  It will also be added to the the list of contacts.  Repeat as
 necessary for additional enryption keys.
 
@@ -58,3 +61,29 @@ for sending the message, and the type of the message.
   
 8. Enable the schedule.
   
+## Notes
+### Amount of output
+
+A schedule can produce a large amount of data and it's possible to get the data sent frequently.  This doesn't mean it's a good
+idea.  For example it's possible to set up a schedule that once an hours sends an analysis of all blocked from the last year.
+This is unlikely to be useful.
+
+A better idea would be to set up a schedule to send just enough data to see if the system is working correctly.  If you spot an
+error you can then log into the system for further analysis.
+
+### Event reporting
+
+If there's no information generated for an item, then that item is not added to the message.  If there are no items added to the
+message then it will not get sent.  You can use this to set up a schedule that checks for errors and important events and
+reports them only if they're found.  For example:
+
+|Section   |Subsection                |Item      |Parameter       |Value|
+|----------|--------------------------|----------|----------------|-----|
+|Services  |Intrusion Detection System|Alerts    |Minimum Priority|    1|
+|Statistics|Firewall                  |IP address|Minimum count   |   20|
+|Statistics|ssh                       |Errors    |                |     |
+|Statistics|ssh                       |Logins    |                |     |
+
+Under normal circumstances these items should all be empty, so if you set up a schedule containing these items that's scheduled
+for every hour, you won't get an email unless one of these items occurs.
+
