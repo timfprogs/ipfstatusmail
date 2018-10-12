@@ -44,14 +44,14 @@ sub core( $ );
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'update-pakfire-core',
-                       'section'    => $Lang::tr{'statusmail update'},
+  main::add_mail_item( 'ident'      => 'system-pakfire-core',
+                       'section'    => $Lang::tr{'system'},
                        'subsection' => 'Pakfire',
                        'item'       => $Lang::tr{'statusmail core'},
                        'function'   => \&core );
 
-  main::add_mail_item( 'ident'      => 'update-pakfire-addons',
-                       'section'    => $Lang::tr{'statusmail update'},
+  main::add_mail_item( 'ident'      => 'system-pakfire-addons',
+                       'section'    => $Lang::tr{'system'},
                        'subsection' => 'Pakfire',
                        'item'       => $Lang::tr{'statusmail addon'},
                        'function'   => \&addon );

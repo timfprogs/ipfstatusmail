@@ -169,10 +169,10 @@ sub BEGIN
   }
 
   main::add_mail_item( %common_options,
-                       'ident'       => 'graph-system-load',
+                       'ident'       => 'graph-system-entropy',
                        'subsection'  => $Lang::tr{'system'},
-                       'item'        => "Load $Lang::tr{'graph'}",
-                       'function'    => \&cpu_load );
+                       'item'        => $Lang::tr{'entropy'},
+                       'function'    => \&entropy );
 
   # Hardware
 
@@ -217,14 +217,6 @@ sub BEGIN
                          'item'        => "hwvolt",
                          'function'    => \&hwvolt );
   }
-
-  # Entropy
-
-  main::add_mail_item( %common_options,
-                       'ident'       => 'graph-entropy',
-                       'subsection'  => $Lang::tr{'entropy'},
-                       'item'        => $Lang::tr{'entropy'},
-                       'function'    => \&entropy );
 
   # Memory
 

@@ -41,33 +41,33 @@ require "${General::swroot}/geoip-functions.pl";
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'statistics-firewall-ipaddresses',
-                       'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'network-firewall-ipaddresses',
+                       'section'    => $Lang::tr{'network'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{'ip address'},
                        'function'   => \&addresses,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail statistics firewall min count'},
+                                         'name'   => $Lang::tr{'statusmail firewall min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'ident'      => 'statistics-firewall-ports',
-                       'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'network-firewall-ports',
+                       'section'    => $Lang::tr{'network'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{port},
                        'function'   => \&ports,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail statistics firewall min count'},
+                                         'name'   => $Lang::tr{'statusmail firewall min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'ident'      => 'statistics-firewall-countries',
-                       'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'network-firewall-countries',
+                       'section'    => $Lang::tr{'network'},
                        'subsection' => $Lang::tr{'firewall'},
                        'item'       => $Lang::tr{country},
                        'function'   => \&countries,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail statistics firewall min count'},
+                                         'name'   => $Lang::tr{'statusmail firewall min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
 }

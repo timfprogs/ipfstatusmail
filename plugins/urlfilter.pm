@@ -39,23 +39,23 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'statistics-urlfilter-client',
-                       'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'services-urlfilter-client',
+                       'section'    => $Lang::tr{'services'},
                        'subsection' => $Lang::tr{'urlfilter url filter'},
                        'item'       => $Lang::tr{'urlfilter client'},
                        'function'   => \&clients,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail statistics urlfilter min count'},
+                                         'name'   => $Lang::tr{'statusmail urlfilter min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
 
-  main::add_mail_item( 'ident'      => 'statistics-urlfilter-destination',
-                       'section'    => $Lang::tr{'statusmail statistics'},
+  main::add_mail_item( 'ident'      => 'services-urlfilter-destination',
+                       'section'    => $Lang::tr{'services'},
                        'subsection' => $Lang::tr{'urlfilter url filter'},
                        'item'       => $Lang::tr{'destination'},
                        'function'   => \&destinations,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail statistics urlfilter min count'},
+                                         'name'   => $Lang::tr{'statusmail urlfilter min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
 }

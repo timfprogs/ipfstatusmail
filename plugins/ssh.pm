@@ -39,15 +39,15 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'statistics-ssh-logins',
-                       'section'    => $Lang::tr{'statusmail statistics'},
-                       'subsection' => 'ssh',
+  main::add_mail_item( 'ident'      => 'system-ssh-logins',
+                       'section'    => $Lang::tr{'system'},
+                       'subsection' => 'SSH',
                        'item'       => $Lang::tr{'statusmail logins'},
                        'function'   => \&logins );
 
-  main::add_mail_item( 'ident'      => 'statistics-ssh-errors',
-                       'section'    => $Lang::tr{'statusmail statistics'},
-                       'subsection' => 'ssh',
+  main::add_mail_item( 'ident'      => 'system-ssh-errors',
+                       'section'    => $Lang::tr{'system'},
+                       'subsection' => 'SSH',
                        'item'       => $Lang::tr{'statusmail errors'},
                        'function'   => \&errors );
 }
