@@ -70,6 +70,16 @@ sub BEGIN
                                          'name'   => $Lang::tr{'statusmail firewall min count'},
                                          'min'    => 1,
                                          'max'    => 1000 } );
+
+  main::add_mail_item( 'ident'      => 'network-firewall-reason',
+                       'section'    => $Lang::tr{'network'},
+                       'subsection' => $Lang::tr{'firewall'},
+                       'item'       => $Lang::tr{'statusmail firewall reason'},
+                       'function'   => \&reasons,
+                       'option'     => { 'type'   => 'integer',
+                                         'name'   => $Lang::tr{'statusmail firewall min count'},
+                                         'min'    => 1,
+                                         'max'    => 1000 } );
 }
 
 ############################################################################
@@ -77,15 +87,15 @@ sub BEGIN
 ############################################################################
 
 use constant { SEC    => 0,
-  						 MIN    => 1,
-							 HOUR   => 2,
-							 MDAY   => 3,
-							 MON    => 4,
-							 YEAR   => 5,
-							 WDAY   => 6,
-							 YDAY   => 7,
-							 ISDST  => 8,
-							 MONSTR => 9 };
+               MIN    => 1,
+               HOUR   => 2,
+               MDAY   => 3,
+               MON    => 4,
+               YEAR   => 5,
+               WDAY   => 6,
+               YDAY   => 7,
+               ISDST  => 8,
+               MONSTR => 9 };
 
 use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
@@ -207,7 +217,8 @@ sub get_log( $$ )
 
       next unless ($line =~ m/ipfire kernel: DROP/);
 
-      my ($time, $interface, $src_addrs, $dst_port) = $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
+      my ($time, $rule, $interface, $src_addrs, $dst_port) =
+        $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
 #      Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=146.185.222.28 DST=95.149.139.151 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
 
       next unless ($src_addrs);
@@ -231,6 +242,10 @@ sub get_log( $$ )
         $info{'by_country'}{$country}{'first'} = $time unless ($info{'by_country'}{$country}{'first'});
         $info{'by_country'}{$country}{'last'}  = $time;
       }
+
+      $info{'by_rule'}{$rule}{'count'}++;
+      $info{'by_rule'}{$rule}{'first'} = $time unless ($info{'by_rule'}{$rule}{'first'});
+      $info{'by_rule'}{$rule}{'last'}  = $time;
 
       $info{'total'}++;
     }
@@ -341,6 +356,36 @@ sub countries( $$ )
     my $full_country = GeoIP::get_full_country_name( $country) || $country;
 
     push @table, [ $full_country, $count, $percent, $first, $last ];
+  }
+
+  if (@table > 2)
+  {
+    $self->add_table( @table );
+  }
+}
+
+#------------------------------------------------------------------------------
+
+sub reasons( $$ )
+{
+  my ($self, $min_count) = @_;
+  my @table;
+
+  push @table, ['<', '|', '|', '|', '|'];
+  push @table, [ $Lang::tr{'statusmail firewall reason'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
+
+  my $stats = get_log( $self, '/var/log/messages' );
+
+  foreach my $reason (sort { $$stats{'by_rule'}{$b}{'count'} <=> $$stats{'by_rule'}{$a}{'count'} } keys %{ $$stats{'by_rule'} } )
+  {
+    my $count   = $$stats{'by_rule'}{$reason}{'count'};
+    my $first   = $$stats{'by_rule'}{$reason}{'first'};
+    my $last    = $$stats{'by_rule'}{$reason}{'last'};
+    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
+
+    last if ($count < $min_count);
+
+    push @table, [ $reason, $count, $percent, $first, $last ];
   }
 
   if (@table > 2)

@@ -57,6 +57,7 @@
 'statusmail no period covered' => 'No lines per item specified',
 'statusmail statistics' => 'Statistics',
 'statusmail firewall min count' => 'Minimum count',
+'statusmail firewall reason' => 'Reason',
 'statusmail period' => 'Period',
 'statusmail ids alerts' => 'Alerts',
 'statusmail ids min priority' => 'Minimum priority',
