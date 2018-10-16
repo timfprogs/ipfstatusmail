@@ -34,7 +34,7 @@ package Graphs;
 # Function prototypes
 ############################################################################
 
-sub add_graph( $$$$$$ );
+sub add_graph( $$$$@ );
 
 ############################################################################
 # BEGIN Block
@@ -72,7 +72,7 @@ sub BEGIN
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-red0',
                             'subsection'  => $Lang::tr{'network'},
-                            'item'        => $Lang::tr{'red'},
+                            'item'        => 'red0',
                             'function'    => \&red0 );
       }
       else
@@ -80,7 +80,7 @@ sub BEGIN
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-ppp0',
                             'subsection'  => $Lang::tr{'network'},
-                            'item'        => $Lang::tr{'red'},
+                            'item'        => 'ppp0',
                             'function'    => \&ppp0 );
       }
     }
@@ -90,14 +90,14 @@ sub BEGIN
     main::add_mail_item( %common_options,
                         'ident'       => 'graph-network-ppp0',
                         'subsection'  => $Lang::tr{'network'},
-                        'item'        => $Lang::tr{'red'},
+                        'item'        => 'ppp0',
                         'function'    => \&ppp0 );
   }
 
   main::add_mail_item( %common_options,
                        'ident'       => 'graph-network-green0',
                        'subsection'  => $Lang::tr{'network'},
-                       'item'        => $Lang::tr{'green'},
+                       'item'        => 'green0',
                        'function'    => \&green0 );
 
   if ($config_type == 3 or $config_type == 4)
@@ -106,7 +106,7 @@ sub BEGIN
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-blue0',
                          'subsection'  => $Lang::tr{'network'},
-                         'item'        => $Lang::tr{'blue'},
+                         'item'        => 'blue0',
                          'function'    => \&blue0 );
   }
 
@@ -116,7 +116,7 @@ sub BEGIN
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-orange0',
                          'subsection'  => $Lang::tr{'network'},
-                         'item'        => $Lang::tr{'orange'},
+                         'item'        => 'orange0',
                          'function'    => \&orange0 );
   }
 
@@ -252,9 +252,9 @@ sub BEGIN
 # sub add_graph( object, interface, period )
 #------------------------------------------------------------------------------
 
-sub add_graph( $$$$$$ )
+sub add_graph( $$$$@ )
 {
-  my ($this, $function, $param, $period, $name, $alternate) = @_;
+  my ($this, $function, $name, $alternate, @params) = @_;
 
   my $from_child;
 
@@ -276,14 +276,7 @@ sub add_graph( $$$$$$ )
   {      # child
     binmode( STDOUT );
 
-    if (defined $param)
-    {
-      &$function( $param, $period );
-    }
-    else
-    {
-      &$function( $period );
-    }
+    &$function( @params );
 
     exit;
   }
@@ -300,7 +293,7 @@ sub ppp0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ppp0', $period, 'ppp0_if.png', 'ppp0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'ppp0_if.png', 'ppp0 interface throughput', 'ppp0', $period );
 }
 
 
@@ -314,7 +307,7 @@ sub red0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'red0', $period, 'red0_if.png', 'red0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, $period, 'red0_if.png', 'red0 interface throughput', 'red0' );
 }
 
 
@@ -328,7 +321,7 @@ sub green0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'green0', $period, 'green0_if.png', 'green0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'green0_if.png', 'green0 interface throughput', 'green0', $period );
 }
 
 
@@ -342,7 +335,7 @@ sub blue0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'blue0', $period, 'blue0_if.png', 'blue0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'blue0_if.png', 'blue0 interface throughput', 'blue0', $period );
 }
 
 
@@ -356,7 +349,7 @@ sub orange0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'orange0', $period, 'orange0_if.png', 'orange0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'orange0_if.png', 'orange0 interface throughput', 'orange0', $period );
 }
 
 
@@ -370,7 +363,7 @@ sub ipsec0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0', $period, 'ipsec0_if.png', 'ipsec0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0_if.png', 'ipsec0 interface throughput', 'ipsec0', $period );
 }
 
 
@@ -384,7 +377,7 @@ sub tun0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'tun0', $period, 'tun0_if.png', 'tun0 interface throughput' );
+  add_graph( $this, \&Graphs::updateifgraph, 'tun0_if.png', 'tun0 interface throughput', 'tun0', $period );
 }
 
 
@@ -398,7 +391,7 @@ sub cpu_usage( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatecpugraph, undef, $period, 'cpu_usage.png', "CPU $Lang::tr{'graph'}" );
+  add_graph( $this, \&Graphs::updatecpugraph, 'cpu_usage.png', "CPU $Lang::tr{'graph'}", $period );
 }
 
 
@@ -412,7 +405,7 @@ sub cpu_freq( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatecpufreqgraph, undef, $period, 'cpu_freq.png', "CPU $Lang::tr{'frequency'}" );
+  add_graph( $this, \&Graphs::updatecpufreqgraph, 'cpu_freq.png', "CPU $Lang::tr{'frequency'}", $period );
 }
 
 
@@ -426,7 +419,7 @@ sub cpu_load( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateloadgraph, undef, $period, 'cpu_load.png', "Load $Lang::tr{'graph'}" );
+  add_graph( $this, \&Graphs::updateloadgraph,, 'cpu_load.png', "Load $Lang::tr{'graph'}", $period );
 }
 
 
@@ -440,7 +433,7 @@ sub fw_hits( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatefwhitsgraph, undef, $period, 'fw_hits.png', $Lang::tr{'firewallhits'} );
+  add_graph( $this, \&Graphs::updatefwhitsgraph, 'fw_hits.png', $Lang::tr{'firewallhits'}, $period );
 }
 
 
@@ -454,7 +447,7 @@ sub therm( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatethermaltempgraph, undef, $period, 'therm.png', "ACPI Thermal-Zone Temp" );
+  add_graph( $this, \&Graphs::updatethermaltempgraph, 'therm.png', "ACPI Thermal-Zone Temp", $period );
 }
 
 
@@ -468,7 +461,7 @@ sub hwtemp( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatehwtempgraph, undef, $period, 'hw_temp.png', 'hwtemp' );
+  add_graph( $this, \&Graphs::updatehwtempgraph, 'hw_temp.png', 'hwtemp', $period );
 }
 
 
@@ -482,7 +475,7 @@ sub hwfan( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatehwfangraph, undef, $period, 'hw_fan.png', 'hwfan' );
+  add_graph( $this, \&Graphs::updatehwfangraph, 'hw_fan.png', 'hwfan', $period );
 }
 
 
@@ -496,7 +489,7 @@ sub hwvolt( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatehwvoltgraph, undef, $period, 'hw_volt.png', 'hw volt' );
+  add_graph( $this, \&Graphs::updatehwvoltgraph, 'hw_volt.png', 'hw volt', $period );
 }
 
 
@@ -510,7 +503,7 @@ sub entropy( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateentropygraph, undef, $period, 'entropy.png', $Lang::tr{'entropy'} );
+  add_graph( $this, \&Graphs::updateentropygraph, 'entropy.png', $Lang::tr{'entropy'}, $period );
 }
 
 
@@ -524,7 +517,7 @@ sub memory( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updatememorygraph, undef, $period, 'memory.png', $Lang::tr{'memory'} );
+  add_graph( $this, \&Graphs::updatememorygraph, 'memory.png', $Lang::tr{'memory'}, $period );
 }
 
 
@@ -538,5 +531,5 @@ sub swap( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateswapgraph, undef, $period, 'swap.png', $Lang::tr{'swap'} );
+  add_graph( $this, \&Graphs::updateswapgraph, 'swap.png', $Lang::tr{'swap'}, $period );
 }
