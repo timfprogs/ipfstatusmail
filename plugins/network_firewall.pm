@@ -218,7 +218,7 @@ sub get_log( $$ )
       next unless ($line =~ m/ipfire kernel: DROP/);
 
       my ($time, $rule, $interface, $src_addrs, $dst_port) =
-        $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
+        $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
 #      Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=146.185.222.28 DST=95.149.139.151 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
 
       next unless ($src_addrs);
