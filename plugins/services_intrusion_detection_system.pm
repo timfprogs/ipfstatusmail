@@ -22,14 +22,35 @@
 #                                                                          #
 ############################################################################
 
-require "${General::swroot}/lang.pl";
-
 use strict;
 use warnings;
 
-package statistics_ssh;
+require "${General::swroot}/lang.pl";
+
+package Services_Intrusion_Detection_System;
 
 use Time::Local;
+
+############################################################################
+# Function prototypes
+############################################################################
+
+sub get_log( $ );
+
+############################################################################
+# Constants
+############################################################################
+
+use constant { SEC    => 0,
+               MIN    => 1,
+               HOUR   => 2,
+               MDAY   => 3,
+               MON    => 4,
+               YEAR   => 5,
+               WDAY   => 6,
+               YDAY   => 7,
+               ISDST  => 8,
+               MONSTR => 9 };
 
 ############################################################################
 # BEGIN Block
@@ -39,65 +60,37 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'system-ssh-logins',
-                       'section'    => $Lang::tr{'system'},
-                       'subsection' => 'SSH',
-                       'item'       => $Lang::tr{'statusmail logins'},
-                       'function'   => \&logins );
-
-  main::add_mail_item( 'ident'      => 'system-ssh-errors',
-                       'section'    => $Lang::tr{'system'},
-                       'subsection' => 'SSH',
-                       'item'       => $Lang::tr{'statusmail errors'},
-                       'function'   => \&errors );
+  main::add_mail_item( 'ident'      => 'services-ids-alerts',
+                       'section'    => $Lang::tr{'services'},
+                       'subsection' => $Lang::tr{'intrusion detection system'},
+                       'item'       => $Lang::tr{'statusmail ids alerts'},
+                       'function'   => \&alerts,
+                       'option'     => { 'type'   => 'integer',
+                                         'name'   => $Lang::tr{'statusmail ids min priority'},
+                                         'min'    => 1,
+                                         'max'    => 4 } );
 }
 
 ############################################################################
-# Constants
+# Code
 ############################################################################
-
-use constant { SEC    => 0,
-              MIN    => 1,
-              HOUR   => 2,
-              MDAY   => 3,
-              MON    => 4,
-              YEAR   => 5,
-              WDAY   => 6,
-              YDAY   => 7,
-              ISDST  => 8,
-              MONSTR => 9 };
-
-use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-
-
-############################################################################
-# Functions
-############################################################################
-
-sub get_log( $$ );
-sub ssh( $ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %months;
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
-  my $data = $this->cache( 'ssh' );
+  my $data = $this->cache( 'ids-alerts' );
   return $data if (defined $data);
 
+  my $name = '/var/log/snort/alert';
+
   my %info;
-  my $weeks = $this->get_number_weeks;
   my $last_mon   = 0;
   my $last_day   = 0;
   my $last_hour  = 0;
@@ -107,22 +100,22 @@ sub get_log( $$ )
   my $year       = 0;
   my $start_time = $this->get_period_start;;
   my $end_time   = $this->get_period_end;
+  my @stats;
 
-  foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
-  {
-    $months{(MONTHS)[$monindex]} = $monindex;
-  }
-
-  for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
+  for (my $filenum = 40 ; $filenum >= 0 ; $filenum--)
   {
     my $filename = $filenum < 1 ? $name : "$name.$filenum";
 
     if (-r "$filename.gz")
     {
+      @stats = stat( _ );
+      next if ($stats[9] < $start_time);
+
       open IN, "gzip -dc $filename.gz |" or next;
     }
     elsif (-r $filename)
     {
+      @stats = stat( _ );
       open IN, '<', $filename or next;
     }
     else
@@ -130,16 +123,38 @@ sub get_log( $$ )
       next;
     }
 
-    $year = (localtime( (stat(_))[9] ))[YEAR];
+    $year = (localtime( $stats[9] ))[YEAR];
+
+    my $current_line = '';
 
     foreach my $line (<IN>)
     {
-      # We only deal with hour boundaries so check for changes in hour, month, day.
-      # This is a hack to quickly check if these fields have changed, without
-      # caring about what the values actually are.  We don't care about minutes and
-      # seconds.
+      chomp $line;
 
-      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
+      # Alerts cover multiple lines and have the format:
+      #
+      #   [**] [gid:sid:prio] message [**]
+      #   [Classification: type] [Priority: priority]
+      #   mm/dd-hh:mm:ss.mmmmmm src_ip:port -> dest_ip:[port]
+      #   various other lines, terminated by a blank line
+
+      $line =~ s/^\s+//;
+      $line =~ s/\s+$//;
+
+      if ($line)
+      {
+        $current_line .= $line;
+        next;
+      }
+
+      next unless ($current_line);
+
+      my ($gid, $sid, $message, $prio, $mon, $day, $hour, $min, $sec, $src, $dest) =
+        $current_line =~ m/\[(\d+):(\d+):\d+\]\s*(.*)\s+\[\*\*\].*\[Priority:\s(\d+)\].*?(\d+)\/(\d+)-(\d+):(\d+):(\d+)\.\d+\s+(\d+\.\d+\.\d+\.\d+(?::\d+)?) -> (\d+\.\d+\.\d+\.\d+(?::\d+)?)/;
+
+      $current_line = '';
+
+      $sid = "$gid-$sid";
 
       if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
       {
@@ -151,8 +166,7 @@ sub get_log( $$ )
 
         $time[YEAR] = $year;
 
-        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
-        $time[MON] = $months{$time[MON]};
+        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = ($mon - 1, $day, $hour, $min, $sec);
 
         $time = timelocal( @time );
 
@@ -185,43 +199,59 @@ sub get_log( $$ )
       next if ($time < $start_time);
       last if ($time > $end_time);
 
-      next unless ($line =~ m/ipfire sshd/);
+      $info{total}++;
 
-      # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
-      if (my ($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
+      if (exists $info{by_sid}{$sid})
       {
-        $info{$type}{"$user||$from"}++;
+        $info{by_sid}{$sid}{count}++;
+        $info{by_sid}{$sid}{last}    = localtime( $time );
+      }
+      else
+      {
+        $info{by_sid}{$sid}{count}    = 1;
+        $info{by_sid}{$sid}{priority} = $prio;
+        $info{by_sid}{$sid}{message}  = $message;
+        $info{by_sid}{$sid}{first}    = localtime( $time );
+        $info{by_sid}{$sid}{last}     = localtime( $time );
       }
     }
 
     close IN;
   }
 
-  $this->cache( 'ssh', \%info );
+  $this->cache( 'ids-alerts', \%info );
 
   return \%info;
+
 }
+
 
 #------------------------------------------------------------------------------
 
-sub logins( $$ )
+sub alerts( $$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self, $min_priority) = @_;
   my @table;
 
   use Sort::Naturally;
 
-  push @table, ['|', '|', '|'];
-  push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
+  push @table, ['|', '|', '<', '|', '|', '|', '|'];
+  push @table, [ 'SID', $Lang::tr{'priority'}, $Lang::tr{'name'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
-  foreach my $who (sort keys %{ $$stats{'Accepted'} } )
+  foreach my $sid (sort { $$stats{by_sid}{$a}{priority} <=> $$stats{by_sid}{$b}{priority} || $$stats{by_sid}{$b}{count} <=> $$stats{by_sid}{$a}{count}} keys %{ $$stats{by_sid} } )
   {
-    my $count   = $$stats{'Accepted'}{$who};
-    my ($user, $from) = split /\|\|/, $who;
+    my $message  = $$stats{by_sid}{$sid}{message};
+    my $priority = $$stats{by_sid}{$sid}{priority};
+    my $count    = $$stats{by_sid}{$sid}{count};
+    my $first    = $$stats{by_sid}{$sid}{first};
+    my $last     = $$stats{by_sid}{$sid}{last};
+    my $percent  = int( 100 * $count / $$stats{total} + 0.5);
 
-    push @table, [ $user, $from, $count ];
+    last if ($priority > $min_priority);
+
+    push @table, [ $sid, $priority, $message, $count, $percent, $first, $last ];
   }
 
   if (@table > 2)
@@ -230,32 +260,5 @@ sub logins( $$ )
   }
 }
 
-#------------------------------------------------------------------------------
-
-sub errors( $$ )
-{
-  my ($self, $min_count) = @_;
-  my @table;
-
-  use Sort::Naturally;
-
-  push @table, ['|', '|', '|'];
-  push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
-
-  my $stats = get_log( $self, '/var/log/messages' );
-
-  foreach my $who (sort keys %{ $$stats{'Failed'} } )
-  {
-    my $count   = $$stats{'Failed'}{$who};
-    my ($user, $from) = split /\|\|/, $who;
-
-    push @table, [ $user, $from, $count ];
-  }
-
-  if (@table > 2)
-  {
-    $self->add_table( @table );
-  }
-}
 
 1;

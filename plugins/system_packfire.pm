@@ -27,7 +27,7 @@ use warnings;
 
 require "${General::swroot}/lang.pl";
 
-package Update_Packfire;
+package System_Packfire;
 
 ############################################################################
 # Function prototypes

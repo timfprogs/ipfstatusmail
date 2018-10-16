@@ -27,7 +27,7 @@ require "${General::swroot}/lang.pl";
 use strict;
 use warnings;
 
-package statistics_urlfilter;
+package Services_Urlfilter;
 
 use Time::Local;
 

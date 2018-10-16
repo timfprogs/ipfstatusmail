@@ -27,7 +27,7 @@ require "${General::swroot}/lang.pl";
 use strict;
 use warnings;
 
-package statistics_firewall;
+package Network_Firewall;
 
 use Time::Local;
 

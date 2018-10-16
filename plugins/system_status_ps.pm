@@ -27,7 +27,7 @@ use warnings;
 
 require "${General::swroot}/lang.pl";
 
-package Status_System_Ps;
+package System_Status_Ps;
 
 ############################################################################
 # Function prototypes
