@@ -733,8 +733,8 @@ END
     print "<option value='$name'$select>$name</option>\n";
   }
 
-  my $select_html   = $schedule{'format'}      eq 'html'   ? ' selected' : '';
-  my $select_text   = $schedule{'format'}      ne 'html'   ? ' selected' : '';
+  my $select_html   = $schedule{'format'}      ne 'text'   ? ' selected' : '';
+  my $select_text   = $schedule{'format'}      eq 'text'   ? ' selected' : '';
   my $select_hours  = $schedule{'period-unit'} eq 'hours'  ? ' selected' : '';
   my $select_days   = $schedule{'period-unit'} eq 'days'   ? ' selected' : '';
   my $select_weeks  = $schedule{'period-unit'} eq 'weeks'  ? ' selected' : '';
@@ -1242,8 +1242,10 @@ sub check_schedule( % )
 
   $errormessage .= "<p>$Lang::tr{'statusmail no schedule date'}" if (not ($mdays+$wdays));
   $errormessage .= "<p>$Lang::tr{'statusmail no schedule time'}" if (not $hours);
-
-  return if ($errormessage);
+  $errormessage .= "<p>$Lang::tr{'statusmail excessive period'}" if (($params{'period-unit'} eq 'hours'  and $params{'period-value'} > (365 * 24)) or
+                                                                     ($params{'period-unit'} eq 'days'   and $params{'period-value'} > 365)        or
+                                                                     ($params{'period-unit'} eq 'weeks'  and $params{'period-value'} > 52)         or
+                                                                     ($params{'period-unit'} eq 'months' and $params{'period-value'} > 12));
 
   $schedules{$params{'name'}} = { 'subject'      => $params{'subject'},
                                   'email'        => $params{'emails'},
@@ -1286,7 +1288,7 @@ sub check_schedule( % )
     }
   }
 
-  $save_schedules = 1;
+  $save_schedules = 1 unless ($errormessage);
 }
 
 
