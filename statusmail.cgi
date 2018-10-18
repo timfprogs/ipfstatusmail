@@ -69,6 +69,7 @@ my $mailsettings         = "${General::swroot}/dma/mail.conf";
 my $mainsettings         = "${General::swroot}/main/settings";
 my $plugin_dir           = "${General::swroot}/statusmail/plugins";
 my $gpg                  = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
+my $execute              = '/usr/local/bin/statusmail.pl';
 my $tmpdir               = '/var/tmp';
 
 ###############################################################################
@@ -241,6 +242,10 @@ elsif ($cgiparams{'SCHEDULE_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'SCHEDULE
 elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'edit schedule')
 {
   $current_schedule = $cgiparams{'KEY'};
+}
+elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'execute schedule')
+{
+  system( "$execute '$cgiparams{'KEY'}' &" );
 }
 elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'remove schedule')
 {
@@ -970,7 +975,7 @@ END
   <table width='100%' class='tbl'>
   <tr>
     <th width='90%'>$Lang::tr{'statusmail name'}</th>
-    <th colspan='3'>$Lang::tr{'statusmail action'}</th>
+    <th colspan='4'>$Lang::tr{'statusmail action'}</th>
   </tr>
 END
 ;
@@ -1016,6 +1021,14 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='SCHEDULE_ACTION' value='toggle schedule' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/$gif' alt='$gdesc' title='$gdesc' />
+  <input type='hidden' name='KEY' value='$name' />
+  </form>
+  </td>
+
+  <td align='center'>
+  <form method='post' action='$ENV{'SCRIPT_NAME'}'>
+  <input type='hidden' name='SCHEDULE_ACTION' value='execute schedule' />
+  <input type='image' name='$Lang::tr{'remove'}' src='/images/play.png' '$Lang::tr{'statusmail execute'}' title='$Lang::tr{'statusmail execute'}' />
   <input type='hidden' name='KEY' value='$name' />
   </form>
   </td>
