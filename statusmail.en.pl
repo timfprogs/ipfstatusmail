@@ -63,5 +63,19 @@
 'statusmail ids min priority' => 'Minimum priority',
 'statusmail logins' => 'Logins',
 'statusmail errors' => 'Errors',
-'statusmail urlfilter min count' => 'Minimum count'
+'statusmail urlfilter min count' => 'Minimum count',
+'statusmail kernel out of memory' => 'Out of Memory Killer',
+'statusmail kernel SYN flood' => 'SYN Flood',
+'statusmail kernel raid errors' => 'RAID errors',
+'statusmail error' => 'Error',
+'statusmail kernel segmentation fault' => 'Segmentation faults',
+'statusmail executable' => 'Executable',
+'statusmail kernel general protection fault' => 'general Protection Faults',
+'statusmail kernel trap int3' => 'Trap INT3',
+'statusmail kernel unaligned' => 'Unaligned errors',
+'statusmail kernel FP Assists' => 'Floating-point assists',
+'statusmail kernel errors' => 'Kernel errors',
+'statusmail kernel edac messages' => 'EDAC Messages',
+'statusmail message' => 'Message',
+'statusmail execute' => 'Execute schedule now'
 );
