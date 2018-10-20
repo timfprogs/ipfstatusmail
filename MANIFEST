@@ -15,6 +15,7 @@ test_plugin.pl /var/ipfire/statusmail nobody.nobody 0755
 play.png /srv/web/ipfire/html/images root.root 0644
 plugins/graphs.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/network_firewall.pm /var/ipfire/statusmail nobody.nobody 0644
+plugins/services_clamav.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/services_intrusion_detection_system.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/services_urlfilter.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/system_packfire.pm /var/ipfire/statusmail nobody.nobody 0644
