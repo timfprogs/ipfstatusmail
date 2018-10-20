@@ -123,7 +123,7 @@ sub get_log( $$ )
 {
   my ($this, $name) = @_;
 
-  my $data = $this->cache( 'statistics-firewall' );
+  my $data = $this->cache( 'network-firewall' );
   return $data if (defined $data);
 
   my %info;
@@ -253,7 +253,7 @@ sub get_log( $$ )
     close IN;
   }
 
-  $this->cache( 'statistics-firewall', \%info );
+  $this->cache( 'network-firewall', \%info );
 
   return \%info;
 }
@@ -282,6 +282,10 @@ sub addresses( $$ )
     my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
 
     last if ($count < $min_count);
+
+    my $name = $self->lookup_ip_address( $address );
+
+    $address = "$address\n$name" if ($name);
 
     if ($country)
     {
