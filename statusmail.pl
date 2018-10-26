@@ -305,7 +305,7 @@ sub add_mail_item( % )
 
     if ($params{'option'}{'type'} eq 'select')
     {
-      return unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 2);
+      return unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 1);
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {

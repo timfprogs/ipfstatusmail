@@ -1427,7 +1427,7 @@ sub add_mail_item( %)
 
     if ($params{'option'}{'type'} eq 'select')
     {
-      return unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 2);
+      return unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 1);
 
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'}   = $params{'option'}{'type'};
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'values'} = $params{'option'}{'values'};

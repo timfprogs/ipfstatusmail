@@ -333,7 +333,7 @@ sub add_mail_item( @ )
 
     if ($params{'option'}{'type'} eq 'select')
     {
-      unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 2)
+      unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 1)
       {
         print "Plugin $plugin select option values incorrectly specified\n";
         return;
