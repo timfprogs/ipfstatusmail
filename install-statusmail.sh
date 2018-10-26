@@ -12,9 +12,13 @@ phase2="no"
 
 if [[ ! -d $settingsdir ]]; then mkdir -p $settingsdir; fi
 
-while getopts ":2hH" opt; do
+while getopts ":2hHb:" opt; do
   case $opt in
   2) phase2="yes";;
+
+  b) branch=$OPTARG;;
+
+  :) echo "No argument supplied for option-$OPTARG"; exit 1;;
 
   *) echo "Usage: $0 [-2]"; exit 1;;
   esac
@@ -25,6 +29,8 @@ if [[ $phase2 == "no" ]]; then
   # Download the manifest
 
   wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/MANIFEST"
+
+  if [[ $? -gt 0 ]]; then echo "Branch $branch not found"; exit 1; fi
 
   # Download and move files to their destinations
 
@@ -37,11 +43,18 @@ if [[ $phase2 == "no" ]]; then
 
   while read -r name path owner mode || [[ -n "$name" ]]; do
     echo --
-    echo Download $name
-    if [[ ! -d $path ]]; then mkdir -p $path; fi
-    if [[ $name != "." ]]; then wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/$name" -O $path/$name; fi
-    chown $owner $path/$name
-    chmod $mode $path/$name
+    if [[ ! -d $path ]]; then
+      echo "Create $name";
+      mkdir -p $path;
+    fi
+
+    if [[ $name != "." ]]; then
+      echo "Download $name";
+      wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/$name" -O $path/$name;
+    fi
+
+    echo chown $owner $path/$name
+    echo chmod $mode $path/$name
   done < "MANIFEST"
 
   # Tidy up
@@ -49,10 +62,12 @@ if [[ $phase2 == "no" ]]; then
   rm MANIFEST
 
   # Run the second phase of the new install file
-  exec $0 -2
+  exec $0 -2 -b $branch
 
   echo Failed to exec $0
 fi
+
+echo
 
 # Update language cache
 
