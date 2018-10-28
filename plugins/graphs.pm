@@ -307,7 +307,7 @@ sub red0( $$ )
 {
   my ($this, $period) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, $period, 'red0_if.png', 'red0 interface throughput', 'red0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'red0_if.png', 'red0 interface throughput', 'red0', $period );
 }
 
 
