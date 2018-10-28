@@ -1,14 +1,3 @@
-my @updates=();
-my @new_enabled=();
-my @new_disabled=();
-my @deleted=();
-my @consider_enable=();
-my @consider_disable=();
-my @enabled=();
-my @disabled=();
-my $active_rules = -1;
-my $errormessage = '';
-my @unrecognised = ();
 #!/usr/bin/perl
 
 ############################################################################
