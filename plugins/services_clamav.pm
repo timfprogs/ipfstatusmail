@@ -39,11 +39,20 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'services-clamav',
-                       'section'    => $Lang::tr{'services'},
-                       'subsection' => 'Clam AV',
-                       'item'       => 'Clam AV',
-                       'function'   => \&alerts );
+  if ( -e "/var/run/clamav/clamd.pid" )
+  {
+    main::add_mail_item( 'ident'      => 'services-clamav',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => 'Clam AV',
+                         'item'       => $Lang::tr{'statusmail ids alerts'},,
+                         'function'   => \&alerts );
+
+    main::add_mail_item( 'ident'      => 'services-clamav',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => 'Clam AV',
+                         'item'       => $Lang::tr{'updates'},
+                         'function'   => \&updates );
+  }
 }
 
 ############################################################################
@@ -183,11 +192,12 @@ sub get_log( $$ )
 
       if ($message =~ m/^.+?: (.*?) FOUND/i)
       {
-        push @{ $info{viruses} }, $message;
+        push @{ $info{viruses} }, [ $time, $message ];
       }
       elsif ($message =~ m/^Database correctly reloaded \((\d+) (?:signatures|viruses)\)/i)
       {
         $info{rules} = $1;
+        $info{updates}++;
       }
     }
 
@@ -208,18 +218,34 @@ sub alerts( $$ )
 
   use Sort::Naturally;
 
-  push @table, [ $Lang::tr{'urlfilter client'}, $Lang::tr{'count'} ];
+  push @table, [ $Lang::tr{'time'}, $Lang::tr{'alert'} ];
 
   my $info = get_log( $self, '/var/log/messages' );
 
   foreach my $virus ( @{ $$info{viruses} } )
   {
-    $self->add_text( $virus );
+    push @table, $virus;
   }
+
+  if (@table)
+  {
+    $self->add_table( @table );
+  }
+}
+
+#------------------------------------------------------------------------------
+
+sub alerts( $$ )
+{
+  my ($self, $min_count) = @_;
+  my @table;
+
+  my $info = get_log( $self, '/var/log/messages' );
 
   if (exists $$info{rules})
   {
-    $self->add_text( "\n$Lang::tr{'statusmail signatures'}: $$info{rules}" );
+    $self->add_text( "\n$Lang::tr{'installed updates'} $$info{updates}" );
+    $self->add_text( "\n$Lang::tr{'statusmail signatures'} $$info{rules}" );
   }
 }
 

@@ -82,5 +82,6 @@
 'statusmail ids update' => 'Updates',
 'statusmail detail' => 'Level of detail',
 'statusmail summary' => 'Summary',
-'statusmail full' => 'Full'
+'statusmail full' => 'Full',
+'statusmail signatures' => 'Signatures: '
 );
