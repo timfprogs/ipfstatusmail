@@ -41,13 +41,13 @@ sub BEGIN
 {
   if ( -e "/var/run/clamav/clamd.pid" )
   {
-    main::add_mail_item( 'ident'      => 'services-clamav',
+    main::add_mail_item( 'ident'      => 'services-clamav-alerts',
                          'section'    => $Lang::tr{'services'},
                          'subsection' => 'Clam AV',
                          'item'       => $Lang::tr{'statusmail ids alerts'},,
                          'function'   => \&alerts );
 
-    main::add_mail_item( 'ident'      => 'services-clamav',
+    main::add_mail_item( 'ident'      => 'services-clamav-updates',
                          'section'    => $Lang::tr{'services'},
                          'subsection' => 'Clam AV',
                          'item'       => $Lang::tr{'updates'},
