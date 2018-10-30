@@ -192,7 +192,7 @@ sub get_log( $$ )
 
       if ($message =~ m/^.+?: (.*?) FOUND/i)
       {
-        push @{ $info{viruses} }, [ $time, $message ];
+        $info{viruses}{$1}++;
       }
       elsif ($message =~ m/^Database correctly reloaded \((\d+) (?:signatures|viruses)\)/i)
       {
@@ -218,16 +218,16 @@ sub alerts( $$ )
 
   use Sort::Naturally;
 
-  push @table, [ $Lang::tr{'time'}, $Lang::tr{'alert'} ];
+  push @table, [ $Lang::tr{'statusmail ids alert'}, $Lang::tr{'count'} ];
 
   my $info = get_log( $self, '/var/log/messages' );
 
-  foreach my $virus ( @{ $$info{viruses} } )
+  foreach my $virus ( sort { $$info{viruses}{$b} <=> $$info{viruses}{$a} || $a cmp $b} keys %{ $$info{viruses} } )
   {
-    push @table, $virus;
+    push @table, [ $virus, $$info{viruses}{$virus} ];
   }
 
-  if (@table)
+  if (@table > 1)
   {
     $self->add_table( @table );
   }
@@ -235,7 +235,7 @@ sub alerts( $$ )
 
 #------------------------------------------------------------------------------
 
-sub alerts( $$ )
+sub updates( $$ )
 {
   my ($self, $min_count) = @_;
   my @table;
