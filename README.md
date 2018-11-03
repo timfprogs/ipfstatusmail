@@ -65,8 +65,8 @@ for sending the message, and the type of the message.
 ### Amount of output
 
 A schedule can produce a large amount of data and it's possible to get the data sent frequently.  This doesn't mean it's a good
-idea.  For example it's possible to set up a schedule that once an hours sends an analysis of all blocked from the last year.
-This is unlikely to be useful.
+idea.  For example it's possible to set up a schedule that once an hours sends an analysis of all blocked ip packets from the
+last year.  This is unlikely to be useful.
 
 A better idea would be to set up a schedule to send just enough data to see if the system is working correctly.  If you spot an
 error you can then log into the system for further analysis.
@@ -79,10 +79,12 @@ reports them only if they're found.  For example:
 
 |Section   |Subsection                |Item      |Parameter       |Value|
 |----------|--------------------------|----------|----------------|-----|
+|Services  |Clam AV                   |Alerts    |                |     |
 |Services  |Intrusion Detection System|Alerts    |Minimum Priority|    1|
-|Statistics|Firewall                  |IP address|Minimum count   |   20|
-|Statistics|ssh                       |Errors    |                |     |
-|Statistics|ssh                       |Logins    |                |     |
+|Network   |Firewall                  |IP address|Minimum count   |   50|
+|System    |Kernel                    |Errors    |                |     |
+|System    |ssh                       |Errors    |                |     |
+|System    |ssh                       |Logins    |                |     |
 
 Under normal circumstances these items should all be empty, so if you set up a schedule containing these items that's scheduled
 for every hour, you won't get an email unless one of these items occurs.
