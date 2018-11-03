@@ -59,6 +59,7 @@ sub add_title( $$ );
 sub is_html( $ );
 sub is_text( $ );
 sub lookup_ip_address( $$ );
+sub get_max_lines_per_item( $ );
 
 ############################################################################
 # Variables
@@ -104,7 +105,7 @@ sub new( @ )
                    'skip_blank_sections'    => 0,
                    'skip_blank_subsections' => 0,
                    'image_file'             => 'img0000',
-                   'lines'                  => 100,
+                   'max_lines_per_item'     => 100,
                    @_ };
 
   bless( $self, $class );
@@ -182,6 +183,18 @@ sub is_html( $ )
 sub is_text( $ )
 {
   return not shift->{'format'} eq 'html';
+}
+
+
+#------------------------------------------------------------------------------
+# sub get_max_lines_per_item()
+
+# Return true if the message format is text.
+#------------------------------------------------------------------------------
+
+sub get_max_lines_per_item( $ )
+{
+  return shift->{'max_lines_per_item'};
 }
 
 
@@ -811,7 +824,7 @@ sub _add_table_html( $@ )
 
     $text .= "</tr>\n";
     $header_row = 0;
-    last if (++$number_lines > $self->{'lines'});
+    last if (++$number_lines > $self->{'max_lines_per_item'});
   }
 
   $text .= "</table>\n";
@@ -900,7 +913,7 @@ sub _add_table_text( $@ )
       }
     }
 
-    last if (++$number_lines > $self->{'lines'});
+    last if (++$number_lines > $self->{'max_lines_per_item'});
     $header_row = 0;
   }
 
@@ -999,7 +1012,7 @@ sub _add_table_text( $@ )
       redo;
     }
 
-    last if (++$number_lines > $self->{'lines'});
+    last if (++$number_lines > $self->{'max_lines_per_item'});
   }
 
   $self->add( $text );

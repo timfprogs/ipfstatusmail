@@ -86,7 +86,7 @@ my $message = new TestStatusMail( format => $format, stylesheet => $stylesheet, 
 
 get_period ( $message );
 
-$message->{'lines'} = integer( 'Maximum lines per item', 1, 1000 );
+$message->{'max_lines_per_item'} = integer( 'Maximum lines per item', 1, 1000 );
 
 # Loop through the various log items
 

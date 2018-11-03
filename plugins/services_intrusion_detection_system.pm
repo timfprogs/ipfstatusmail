@@ -199,20 +199,22 @@ sub get_log( $ )
       next if ($time < $start_time);
       last if ($time > $end_time);
 
+      my $timestr = "$mon/$day $hour:$min:$sec";
+
       $info{total}++;
 
       if (exists $info{by_sid}{$sid})
       {
         $info{by_sid}{$sid}{count}++;
-        $info{by_sid}{$sid}{last}    = localtime( $time );
+        $info{by_sid}{$sid}{last}    = $timestr;
       }
       else
       {
         $info{by_sid}{$sid}{count}    = 1;
         $info{by_sid}{$sid}{priority} = $prio;
         $info{by_sid}{$sid}{message}  = $message;
-        $info{by_sid}{$sid}{first}    = localtime( $time );
-        $info{by_sid}{$sid}{last}     = localtime( $time );
+        $info{by_sid}{$sid}{first}    = $timestr;
+        $info{by_sid}{$sid}{last}     = $timestr;
       }
     }
 
