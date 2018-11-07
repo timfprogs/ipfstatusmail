@@ -28,23 +28,25 @@ configure the addon.
 
 ## Configuration
 
-1. Create a signing key by clicking on the 'Generate' button.
+1. Make sure you've got the IPFire mail service configured and working (Under 'System > Mail Service'). 
 
-2. If necessary, create an encryption key in your email client.  You can use an existing key.
+2. Create a signing key by clicking on the 'Generate' button.
 
-3. Import the signing key into your email client.
+3. If necessary, create an encryption key in your email client.  You can use an existing key.
 
-4. Export the encryption public key from your email client and paste it into the Encryption Key box.  Click on the 'Import'
+4. Import the signing key into your email client.
+
+5. Export the encryption public key from your email client and paste it into the Encryption Key box.  Click on the 'Import'
 button.
 The key will be imported and shown in the list of installed keys.  It will also be added to the the list of contacts.  Repeat as
 necessary for additional enryption keys.
 
-5. It is possible to add additional contacts without encryption keys.  This is not recommended for security reasons.
+6. It is possible to add additional contacts without encryption keys.  This is not recommended for security reasons.
 
-6. Enable the contacts by clicking on the checkbox against the contact's details.  Disabling contacts allows emails to be
+7. Enable the contacts by clicking on the checkbox against the contact's details.  Disabling contacts allows emails to be
 stopped from going to a person during holidays while still allowing other people to continue to receive emails.
 
-7. Create schedules.  Each schedule defines the contents of an email message that is sent to one or more contacts, the schedule
+8. Create schedules.  Each schedule defines the contents of an email message that is sent to one or more contacts, the schedule
 for sending the message, and the type of the message.
 
   - **Name** Schedule name.  Used in the list of schedules.
@@ -59,7 +61,7 @@ for sending the message, and the type of the message.
   
     The remaining fields define the contents of the email.
   
-8. Enable the schedule.
+9. Enable the schedule.
   
 ## Notes
 ### Amount of output
