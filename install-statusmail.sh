@@ -53,8 +53,8 @@ if [[ $phase2 == "no" ]]; then
       wget "https://github.com/timfprogs/ipfstatusmail/raw/$branch/$name" -O $path/$name;
     fi
 
-    echo chown $owner $path/$name
-    echo chmod $mode $path/$name
+    chown $owner $path/$name
+    chmod $mode $path/$name
   done < "MANIFEST"
 
   # Tidy up
