@@ -97,8 +97,6 @@ use constant { SEC    => 0,
                ISDST  => 8,
                MONSTR => 9 };
 
-use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-
 
 ############################################################################
 # Functions
@@ -106,12 +104,6 @@ use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 sub get_log( $$ );
 sub addresses( $$ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %months;
 
 #------------------------------------------------------------------------------
 # sub get_log( this, name )
@@ -124,134 +116,49 @@ sub get_log( $$ )
   my ($this, $name) = @_;
 
   my $data = $this->cache( 'network-firewall' );
+
   return $data if (defined $data);
 
   my %info;
-  my $weeks = $this->get_number_weeks;
-  my $last_mon   = 0;
-  my $last_day   = 0;
-  my $last_hour  = 0;
-  my $last_time  = 0;
-  my $time       = 0;
-  my $now        = time();
-  my $year       = 0;
-  my $start_time = $this->get_period_start;;
-  my $end_time   = $this->get_period_end;
+  my $line;
 
-  foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
+  while ($line = $this->get_message_log_line)
   {
-    $months{(MONTHS)[$monindex]} = $monindex;
-  }
+    next unless ($line);
+    next unless ($line =~ m/ipfire kernel: DROP/);
 
-  for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
-  {
-    my $filename = $filenum < 1 ? $name : "$name.$filenum";
-
-    if (-r "$filename.gz")
-    {
-      open IN, "gzip -dc $filename.gz |" or next;
-    }
-    elsif (-r $filename)
-    {
-      open IN, '<', $filename or next;
-    }
-    else
-    {
-      next;
-    }
-
-    $year = (localtime( (stat(_))[9] ))[YEAR];
-
-    foreach my $line (<IN>)
-    {
-      # We only deal with hour boundaries so check for changes in hour, month, day.
-      # This is a hack to quickly check if these fields have changed, without
-      # caring about what the values actually are.  We don't care about minutes and
-      # seconds.
-
-      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
-
-      if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
-      {
-        # Hour, day or month changed.  Convert to unix time so we can work out
-        # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information.
-
-        my @time;
-
-        $time[YEAR] = $year;
-
-        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
-        $time[MON] = $months{$time[MON]};
-
-        $time = timelocal( @time );
-
-        if ($time > $now)
-        {
-          # We can't have times in the future, so this must be the previous year.
-
-          $year--;my $ports = 0;
-          $time[YEAR]--;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-        elsif ($time < $last_time)
-        {
-          # Time is increasing, so we must have gone over a year boundary.
-
-          $year++;
-          $time[YEAR]++;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-
-        ($last_mon, $last_day, $last_hour) = ($mon, $day, $hour);
-      }
-
-      # Check to see if we're within the specified limits.
-      # Note that the minutes and seconds may be incorrect, but since we only deal
-      # in hour boundaries this doesn't matter.
-
-      next if ($time < $start_time);
-      last if ($time > $end_time);
-
-      next unless ($line =~ m/ipfire kernel: DROP/);
-
-      my ($time, $rule, $interface, $src_addrs, $dst_port) =
+    my ($time, $rule, $interface, $src_addrs, $dst_port) =
         $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
-#      Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=146.185.222.28 DST=95.149.139.151 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
+# Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=146.185.222.28 DST=95.149.139.151 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
 
-      next unless ($src_addrs);
+    next unless ($src_addrs);
 
-      my $country = GeoIP::lookup( $src_addrs ) || $src_addrs;
+    my $country = GeoIP::lookup( $src_addrs ) || $src_addrs;
 
-      $info{'by_address'}{$src_addrs}{'count'}++;
-      $info{'by_address'}{$src_addrs}{'first'} = $time unless ($info{'by_address'}{$src_addrs}{'first'});
-      $info{'by_address'}{$src_addrs}{'last'}  = $time;
+    $info{'by_address'}{$src_addrs}{'count'}++;
+    $info{'by_address'}{$src_addrs}{'first'} = $time unless ($info{'by_address'}{$src_addrs}{'first'});
+    $info{'by_address'}{$src_addrs}{'last'}  = $time;
 
-      if ($dst_port)
-      {
-        $info{'by_port'}{$dst_port}{'count'}++ ;
-        $info{'by_port'}{$dst_port}{'first'} = $time unless ($info{'by_port'}{$dst_port}{'first'});
-        $info{'by_port'}{$dst_port}{'last'}  = $time;
-      }
-
-      if ($country)
-      {
-        $info{'by_country'}{$country}{'count'}++;
-        $info{'by_country'}{$country}{'first'} = $time unless ($info{'by_country'}{$country}{'first'});
-        $info{'by_country'}{$country}{'last'}  = $time;
-      }
-
-      $info{'by_rule'}{$rule}{'count'}++;
-      $info{'by_rule'}{$rule}{'first'} = $time unless ($info{'by_rule'}{$rule}{'first'});
-      $info{'by_rule'}{$rule}{'last'}  = $time;
-
-      $info{'total'}++;
+    if ($dst_port)
+    {
+      $info{'by_port'}{$dst_port}{'count'}++ ;
+      $info{'by_port'}{$dst_port}{'first'} = $time unless ($info{'by_port'}{$dst_port}{'first'});
+      $info{'by_port'}{$dst_port}{'last'}  = $time;
     }
 
-    close IN;
-  }
+    if ($country)
+    {
+      $info{'by_country'}{$country}{'count'}++;
+      $info{'by_country'}{$country}{'first'} = $time unless ($info{'by_country'}{$country}{'first'});
+      $info{'by_country'}{$country}{'last'}  = $time;
+    }
+
+    $info{'by_rule'}{$rule}{'count'}++;
+    $info{'by_rule'}{$rule}{'first'} = $time unless ($info{'by_rule'}{$rule}{'first'});
+    $info{'by_rule'}{$rule}{'last'}  = $time;
+
+    $info{'total'}++;
+  };
 
   $this->cache( 'network-firewall', \%info );
 
@@ -297,6 +204,8 @@ sub addresses( $$ )
     }
 
     push @table, [ $address, $country, $count, $percent, $first, $last ];
+
+    last if (@table > $self->get_max_lines_per_item + 2)
   }
 
   if (@table > 2)

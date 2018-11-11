@@ -39,11 +39,20 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'services-clamav',
-                       'section'    => $Lang::tr{'services'},
-                       'subsection' => 'Clam AV',
-                       'item'       => 'Clam AV',
-                       'function'   => \&alerts );
+  if ( -e "/var/run/clamav/clamd.pid" )
+  {
+    main::add_mail_item( 'ident'      => 'services-clamav-alerts',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => 'Clam AV',
+                         'item'       => $Lang::tr{'statusmail ids alerts'},,
+                         'function'   => \&alerts );
+
+    main::add_mail_item( 'ident'      => 'services-clamav-updates',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => 'Clam AV',
+                         'item'       => $Lang::tr{'updates'},
+                         'function'   => \&updates );
+  }
 }
 
 ############################################################################
@@ -61,19 +70,11 @@ use constant { SEC    => 0,
                ISDST  => 8,
                MONSTR => 9 };
 
-use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-
 ############################################################################
 # Functions
 ############################################################################
 
 sub get_log( $$ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %months;
 
 #------------------------------------------------------------------------------
 # sub get_log( this, name )
@@ -89,109 +90,24 @@ sub get_log( $$ )
   return $data if (defined $data);
 
   my %info;
-  my $weeks = $this->get_number_weeks;
-  my $last_mon   = 0;
-  my $last_day   = 0;
-  my $last_hour  = 0;
-  my $last_time  = 0;
-  my $time       = 0;
-  my $now        = time();
-  my $year       = 0;
-  my $start_time = $this->get_period_start;;
-  my $end_time   = $this->get_period_end;
+  my $line;
 
-  foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
+  while ($line = $this->get_message_log_line)
   {
-    $months{(MONTHS)[$monindex]} = $monindex;
-  }
+    next unless ($line);
+    next unless ($line =~ m/clamd\[.*\]:|freshclam\[.*\]:/);
 
-  for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
-  {
-    my $filename = $filenum < 1 ? $name : "$name.$filenum";
+    my ($time, $message) = $line =~ m/\w+\s+(\d+\s+\d+:\d+:\d+).*(?:clamd\[.*\]:|freshclam\[.*\]:) (.*)/;
 
-    if (-r "$filename.gz")
+    if ($message =~ m/^.+?: (.*?) FOUND/i)
     {
-      open IN, "gzip -dc $filename.gz |" or next;
+      $info{viruses}{$1}++;
     }
-    elsif (-r $filename)
+    elsif ($message =~ m/^Database correctly reloaded \((\d+) (?:signatures|viruses)\)/i)
     {
-      open IN, '<', $filename or next;
+      $info{rules} = $1;
+      $info{updates}++;
     }
-    else
-    {
-      next;
-    }
-
-    $year = (localtime( (stat(_))[9] ))[YEAR];
-
-    foreach my $line (<IN>)
-    {
-      # We only deal with hour boundaries so check for changes in hour, month, day.
-      # This is a hack to quickly check if these fields have changed, without
-      # caring about what the values actually are.  We don't care about minutes and
-      # seconds.
-
-      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
-
-      if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
-      {
-        # Hour, day or month changed.  Convert to unix time so we can work out
-        # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information.
-
-        my @time;
-
-        $time[YEAR] = $year;
-
-        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
-        $time[MON] = $months{$time[MON]};
-
-        $time = timelocal( @time );
-
-        if ($time > $now)
-        {
-          # We can't have times in the future, so this must be the previous year.
-
-          $year--;my $ports = 0;
-          $time[YEAR]--;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-        elsif ($time < $last_time)
-        {
-          # Time is increasing, so we must have gone over a year boundary.
-
-          $year++;
-          $time[YEAR]++;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-
-        ($last_mon, $last_day, $last_hour) = ($mon, $day, $hour);
-      }
-
-      # Check to see if we're within the specified limits.
-      # Note that the minutes and seconds may be incorrect, but since we only deal
-      # in hour boundaries this doesn't matter.
-
-      next if ($time < $start_time);
-      last if ($time > $end_time);
-
-      next unless ($line =~ m/clamd\[.*\]:|freshclam\[.*\]:/);
-
-      my ($time, $message) = $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*(?:clamd\[.*\]: |freshclam\[.*\]: (.*))/;
-
-      if ($message =~ m/^.+?: (.*?) FOUND/i)
-      {
-        push @{ $info{viruses} }, $message;
-      }
-      elsif ($message =~ m/^Database correctly reloaded \((\d+) (?:signatures|viruses)\)/i)
-      {
-        $info{rules} = $1;
-      }
-    }
-
-    close IN;
   }
 
   $this->cache( 'services-clamav', \%info );
@@ -208,18 +124,34 @@ sub alerts( $$ )
 
   use Sort::Naturally;
 
-  push @table, [ $Lang::tr{'urlfilter client'}, $Lang::tr{'count'} ];
+  push @table, [ $Lang::tr{'statusmail ids alert'}, $Lang::tr{'count'} ];
 
   my $info = get_log( $self, '/var/log/messages' );
 
-  foreach my $virus ( @{ $$info{viruses} } )
+  foreach my $virus ( sort { $$info{viruses}{$b} <=> $$info{viruses}{$a} || $a cmp $b} keys %{ $$info{viruses} } )
   {
-    $self->add_text( $virus );
+    push @table, [ $virus, $$info{viruses}{$virus} ];
   }
+
+  if (@table > 1)
+  {
+    $self->add_table( @table );
+  }
+}
+
+#------------------------------------------------------------------------------
+
+sub updates( $$ )
+{
+  my ($self, $min_count) = @_;
+  my @table;
+
+  my $info = get_log( $self, '/var/log/messages' );
 
   if (exists $$info{rules})
   {
-    $self->add_text( "\n$Lang::tr{'statusmail signatures'}: $$info{rules}" );
+    $self->add_text( "\n$Lang::tr{'installed updates'} $$info{updates}" );
+    $self->add_text( "\n$Lang::tr{'statusmail signatures'} $$info{rules}" );
   }
 }
 

@@ -86,7 +86,7 @@ my $message = new TestStatusMail( format => $format, stylesheet => $stylesheet, 
 
 get_period ( $message );
 
-$message->{'lines'} = integer( 'Maximum lines per item', 1, 1000 );
+$message->{'max_lines_per_item'} = integer( 'Maximum lines per item', 1, 1000 );
 
 # Loop through the various log items
 
@@ -333,7 +333,7 @@ sub add_mail_item( @ )
 
     if ($params{'option'}{'type'} eq 'select')
     {
-      unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 2)
+      unless (ref $params{'option'}{'values'} eq 'ARRAY' and @{ $params{'option'}{'values'} } > 1)
       {
         print "Plugin $plugin select option values incorrectly specified\n";
         return;

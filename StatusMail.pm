@@ -32,10 +32,30 @@ package StatusMail;
 use base qw/EncryptedMail/;
 
 ############################################################################
+# Constants
+############################################################################
+
+use constant { SEC    => 0,
+               MIN    => 1,
+               HOUR   => 2,
+               MDAY   => 3,
+               MON    => 4,
+               YEAR   => 5,
+               WDAY   => 6,
+               YDAY   => 7,
+               ISDST  => 8,
+               MONSTR => 9 };
+
+use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
+
+use constant LOGNAME => '/var/log/messages';
+
+############################################################################
 # Configuration variables
 ############################################################################
 
 my @monthnames = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+my %months;
 
 ############################################################################
 # Function prototypes
@@ -46,6 +66,12 @@ sub get_period_start();
 sub get_period_end();
 sub get_weeks_covered();
 sub cache( $;$ );
+
+
+foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
+{
+  $months{(MONTHS)[$monindex]} = $monindex;
+}
 
 #------------------------------------------------------------------------------
 # sub new
@@ -60,6 +86,11 @@ sub new
   my $class = ref($invocant) || $invocant;
 
   my $self = $class->SUPER::new( @_ );
+
+  $self->{last_time} = 0;
+  $self->{last_mon}  = 0;
+  $self->{last_day}  = 0;
+  $self->{last_hour} = 0;
 
   bless( $self, $class );
 
@@ -227,5 +258,166 @@ sub clear_cache()
 {
   %cache = ();
 }
+
+
+#------------------------------------------------------------------------------
+# sub get_message_log_line()
+#
+# Gets the next line from the message log.
+#------------------------------------------------------------------------------
+
+sub get_message_log_line
+{
+  my $self = shift;
+  my $line;
+
+  if (exists $self->{logindex})
+  {
+    # Reading from the cache
+
+    if ($self->{logindex} < @{ $self->{logcache} })
+    {
+      return $self->{logcache}[$self->{logindex}++];
+    }
+    else
+    {
+      # End of cache - reset to start again on next call
+
+      $self->{logindex} = 0;
+      return undef;
+    }
+  }
+
+  $self->{logfile} = $self->{'weeks_covered'} if (not exists $self->{logfile} or $self->{logfile} < 0);
+
+  LINE:
+  while (1)
+  {
+    if (not exists $self->{fh} or (exists $self->{fh} and eof $self->{fh}))
+    {
+      # Reading from a file and need to open a file
+
+      FILE:
+      while ($self->{logfile} >= 0)
+      {
+        my $name = $self->{logfile} < 1 ? LOGNAME : LOGNAME . '.' . $self->{logfile};
+        $self->{logfile}--;
+
+        if (-r $name)
+        {
+          # Not compressed
+
+          open $self->{fh}, '<', $name or die "Can't open $name: $!";
+          $self->{year} = (localtime( (stat(_))[9] ))[YEAR];
+          last FILE;
+        }
+        elsif (-r "$name.gz")
+        {
+          # Compressed
+
+          open $self->{fh}, "gzip -dc $name.gz |" or next;
+          $self->{year} = (localtime( (stat(_))[9] ))[YEAR];
+          last FILE;
+        }
+
+        # Not found - go back for next file
+      }
+
+      if ($self->{logfile} < -1)
+      {
+        # No further files - reset to start again on next call
+
+        delete $self->{fh};
+        return undef;
+      }
+    }
+
+    if (exists $self->{fh})
+    {
+      # Reading from a file
+
+      $line = readline $self->{fh};
+
+      if (eof $self->{fh})
+      {
+        if ($self->{logfile} < 0)
+        {
+          # No further files - reset to start again on next call
+
+          delete $self->{fh};
+          return undef;
+        }
+        # Go back for next file
+
+        close $self->{fh};
+        next LINE;
+      }
+
+      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
+
+      if ($mon != $self->{last_mon} or $day != $self->{last_day} or $hour != $self->{last_hour})
+      {
+        # Hour, day or month changed.  Convert to unix time so we can work out
+        # whether the message time falls between the limits we're interested in.
+        # This is complicated by the lack of a year in the logged information.
+
+        my @time;
+
+        $time[YEAR] = $self->{year};
+
+        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
+        $time[MON] = $months{$time[MON]};
+
+        $self->{time} = timelocal( @time );
+
+        if ($self->{time} > time())
+        {
+          # We can't have times in the future, so this must be the previous year.
+
+          $self->{year}--;
+          $time[YEAR]--;
+          $self->{time} = timelocal( @time );
+          $self->{last_time} = $self->{time};
+        }
+        elsif ($self->{time} < $self->{last_time})
+        {
+          # Time is increasing, so we must have gone over a year boundary.
+
+          $self->{year}++;
+          $time[YEAR]++;
+          $self->{time}      = timelocal( @time );
+          $self->{last_time} = $self->{time};
+        }
+
+        ($self->{last_mon}, $self->{last_day}, $self->{last_hour}) = ($mon, $day, $hour);
+      }
+
+      # Check to see if we're within the specified limits.
+      # Note that the minutes and seconds may be incorrect, but since we only deal
+      # in hour boundaries this doesn't matter.
+
+      next LINE if ($self->{time} < $self->{start_time});
+
+      if ($self->{time} > $self->{end_time})
+      {
+        # After end time - reset to start again on next call
+
+        close $self->{fh};
+        delete $self->{fh};
+        $self->{logfile} = $self->{'weeks_covered'};
+
+        return undef;
+      }
+
+      push @{$self->{logcache}}, $line if ($self->{'weeks_covered'} <= 1);
+
+      return $line;
+    }
+  }
+
+  print $line if ($line);
+  return $line;
+}
+
 
 1;

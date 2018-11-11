@@ -61,8 +61,6 @@ use constant { SEC    => 0,
                ISDST  => 8,
                MONSTR => 9 };
 
-use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
-
 
 ############################################################################
 # Functions
@@ -70,12 +68,6 @@ use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 sub get_log( $$ );
 sub errors( $$ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %months;
 
 #------------------------------------------------------------------------------
 # sub get_log( this, name )
@@ -91,146 +83,60 @@ sub get_log( $$ )
   return $data if (defined $data);
 
   my %info;
-  my $weeks = $this->get_number_weeks;
-  my $last_mon   = 0;
-  my $last_day   = 0;
-  my $last_hour  = 0;
-  my $last_time  = 0;
-  my $time       = 0;
-  my $now        = time();
-  my $year       = 0;
-  my $start_time = $this->get_period_start;;
-  my $end_time   = $this->get_period_end;
+  my $line;
 
-  foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
+  while ($line = $this->get_message_log_line)
   {
-    $months{(MONTHS)[$monindex]} = $monindex;
-  }
+    next unless ($line);
+    next unless ($line =~ m/ipfire kernel: /);
+    next if ($line =~ m/ipfire kernel: DROP_/);
 
-  for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
-  {
-    my $filename = $filenum < 1 ? $name : "$name.$filenum";
-
-    if (-r "$filename.gz")
+    if ( my ($from, $if) = $line =~ m/^Warning: possible SYN flood from ([^ ]+) on ([^ ]+):.+ Sending cookies/ )
     {
-      open IN, "gzip -dc $filename.gz |" or next;
+      $info{SYNflood}{$from}{$if}++;
     }
-    elsif (-r $filename)
+    elsif ($line =~ m/continuing in degraded mode/)
     {
-      open IN, '<', $filename or next;
+      $info{RAIDErrors}{$line}++;
     }
-    else
+    elsif ($line =~ m/([^(]*)\[\d+\]: segfault at/)
     {
-      next;
+      $info{SegFaults}{$1}++;
     }
-
-    $year = (localtime( (stat(_))[9] ))[YEAR];
-
-    foreach my $line (<IN>)
+    elsif ($line =~ m/([^(]*)\[\d+\] general protection/)
     {
-      # We only deal with hour boundaries so check for changes in hour, month, day.
-      # This is a hack to quickly check if these fields have changed, without
-      # caring about what the values actually are.  We don't care about minutes and
-      # seconds.
-
-      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
-
-      if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
-      {
-        # Hour, day or month changed.  Convert to unix time so we can work out
-        # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information.
-
-        my @time;
-
-        $time[YEAR] = $year;
-
-        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
-        $time[MON] = $months{$time[MON]};
-
-        $time = timelocal( @time );
-
-        if ($time > $now)
-        {
-          # We can't have times in the future, so this must be the previous year.
-
-          $year--;my $ports = 0;
-          $time[YEAR]--;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-        elsif ($time < $last_time)
-        {
-          # Time is increasing, so we must have gone over a year boundary.
-
-          $year++;
-          $time[YEAR]++;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-
-        ($last_mon, $last_day, $last_hour) = ($mon, $day, $hour);
-      }
-
-      # Check to see if we're within the specified limits.
-      # Note that the minutes and seconds may be incorrect, but since we only deal
-      # in hour boundaries this doesn't matter.
-
-      next if ($time < $start_time);
-      last if ($time > $end_time);
-
-      next unless ($line =~ m/ipfire kernel: /);
-      next if ($line =~ m/ipfire kernel: DROP_/);
-
-      if ( my ($from, $if) = $line =~ m/^Warning: possible SYN flood from ([^ ]+) on ([^ ]+):.+ Sending cookies/ )
-      {
-        $info{SYNflood}{$from}{$if}++;
-      }
-      elsif ($line =~ m/continuing in degraded mode/)
-      {
-        $info{RAIDErrors}{$line}++;
-      }
-      elsif ($line =~ m/([^(]*)\[\d+\]: segfault at/)
-      {
-        $info{SegFaults}{$1}++;
-      }
-      elsif ($line =~ m/([^(]*)\[\d+\] general protection/)
-      {
-        $info{GPFaults}{$1}++;
-      }
-      elsif ($line =~ m/([^(]*)\[\d+\] trap int3 /)
-      {
-        $info{TrapInt3s}{$1}++;
-      }
-      elsif ($line =~ m/([^(]*)\(\d+\): unaligned access to/)
-      {
-        $info{UnalignedErrors}{$1}++;
-      }
-      elsif ($line =~ /([^(]*)\(\d+\): floating-point assist fault at ip/)
-      {
-        $info{FPAssists}{$1}++;
-      }
-      elsif ($line =~ m/Out of memory: Killed process \d+ \((.*)\)/)
-      {
-        $info{OOM}{$1}++;
-      }
-      elsif ($line =~ m/(\S+) invoked oom-killer/)
-      {
-        $info{OOM}{$1}++;
-      }
-      elsif ($line =~ m/(EDAC (MC|PCI)\d:.*)/)
-      {
-        # Standard boot messages
-        next if ($line =~ m/Giving out device to /);
-        $info{EDAC}{$1}++;
-      }
-      elsif ( ( my $errormsg ) = ( $line =~ m/((BUG|WARNING|INFO):.{0,40})/ ) )
-      {
-        $info{Errors}{$errormsg}++;
-      }
+      $info{GPFaults}{$1}++;
     }
-
-    close IN;
+    elsif ($line =~ m/([^(]*)\[\d+\] trap int3 /)
+    {
+      $info{TrapInt3s}{$1}++;
+    }
+    elsif ($line =~ m/([^(]*)\(\d+\): unaligned access to/)
+    {
+      $info{UnalignedErrors}{$1}++;
+    }
+    elsif ($line =~ /([^(]*)\(\d+\): floating-point assist fault at ip/)
+    {
+      $info{FPAssists}{$1}++;
+    }
+    elsif ($line =~ m/Out of memory: Killed process \d+ \((.*)\)/)
+    {
+      $info{OOM}{$1}++;
+    }
+    elsif ($line =~ m/(\S+) invoked oom-killer/)
+    {
+      $info{OOM}{$1}++;
+    }
+    elsif ($line =~ m/(EDAC (MC|PCI)\d:.*)/)
+    {
+      # Standard boot messages
+      next if ($line =~ m/Giving out device to /);
+      $info{EDAC}{$1}++;
+    }
+    elsif ( ( my $errormsg ) = ( $line =~ m/((BUG|WARNING|INFO):.{0,40})/ ) )
+    {
+      $info{Errors}{$errormsg}++;
+    }
   }
 
   $this->cache( 'system-kernel', \%info );

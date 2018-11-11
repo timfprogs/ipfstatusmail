@@ -63,6 +63,7 @@
 'statusmail ids min priority' => 'Minimum priority',
 'statusmail logins' => 'Logins',
 'statusmail errors' => 'Errors',
+'statusmail error' => 'Error',
 'statusmail urlfilter min count' => 'Minimum count',
 'statusmail kernel out of memory' => 'Out of Memory Killer',
 'statusmail kernel SYN flood' => 'SYN Flood',
@@ -77,5 +78,10 @@
 'statusmail kernel errors' => 'Kernel errors',
 'statusmail kernel edac messages' => 'EDAC Messages',
 'statusmail message' => 'Message',
-'statusmail execute' => 'Execute schedule now'
+'statusmail execute' => 'Execute schedule now',
+'statusmail ids update' => 'Updates',
+'statusmail detail' => 'Level of detail',
+'statusmail summary' => 'Summary',
+'statusmail full' => 'Full',
+'statusmail signatures' => 'Signatures: '
 );
