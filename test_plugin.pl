@@ -238,9 +238,9 @@ sub integer( $$$ )
 {
   my ($text, $min, $max) = @_;
 
-  my $value = '';
+  my $value;
 
-  while (not $value)
+  while (not defined $value)
   {
     print "Select $text ($min..$max):";
 
@@ -249,6 +249,7 @@ sub integer( $$$ )
     chomp $line;
 
     next if ($line =~ m/\D+/);
+    next unless ($line =~ m/\d/);
     next if ($line < $min);
     next if ($line > $max);
 
