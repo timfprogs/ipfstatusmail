@@ -197,13 +197,13 @@ sub execute_schedule( $$ )
 
   # Create message
 
-  my $message = new StatusMail( 'format'     => $$schedule{'format'},
-                                'subject'    => $$schedule{'subject'},
-                                'to'         => [ @contacts],
-                                'sender'     => $mailsettings{'SENDER'},
-                                'contacts'   => \%contacts,
-                                'lines'      => $$schedule{'lines'},
-                                'stylesheet' => $stylesheet );
+  my $message = new StatusMail( 'format'             => $$schedule{'format'},
+                                'subject'            => $$schedule{'subject'},
+                                'to'                 => [ @contacts],
+                                'sender'             => $mailsettings{'SENDER'},
+                                'contacts'           => \%contacts,
+                                'max_lines_per_item' => $$schedule{'lines'},
+                                'stylesheet'         => $stylesheet );
 
   if (not $message)
   {
@@ -309,7 +309,7 @@ sub add_mail_item( % )
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
-      return unless ($params{'option'}{'min'} and $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'});
+      return unless (exists $params{'option'}{'min'} and exists $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'});
     }
     else
     {

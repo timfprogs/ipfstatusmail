@@ -341,9 +341,14 @@ sub add_mail_item( @ )
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
-      unless ($params{'option'}{'min'} and $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'})
+      unless (exists $params{'option'}{'min'} and exists $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'})
       {
         print "Plugin $plugin integer option limits not correctly specified\n";
+        print "No minimum value specified\n"       unless (exists $params{'option'}{'min'});
+        print "No maximum value specified\n"       unless (exists $params{'option'}{'max'});
+        print "Maximum not greater than minimum\n" unless (exists $params{'option'}{'min'} and
+                                                           exists $params{'option'}{'min'} and
+                                                           $params{'option'}{'min'} < $params{'option'}{'max'});
       }
     }
     else
