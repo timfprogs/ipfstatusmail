@@ -71,7 +71,7 @@ sub BEGIN
       {
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-red0',
-                            'subsection'  => $Lang::tr{'network'},
+                            'subsection'  => $Lang::tr{'interfaces'},
                             'item'        => 'red0',
                             'function'    => \&red0 );
       }
@@ -79,7 +79,7 @@ sub BEGIN
       {
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-ppp0',
-                            'subsection'  => $Lang::tr{'network'},
+                            'subsection'  => $Lang::tr{'interfaces'},
                             'item'        => 'ppp0',
                             'function'    => \&ppp0 );
       }
@@ -89,14 +89,14 @@ sub BEGIN
   {
     main::add_mail_item( %common_options,
                         'ident'       => 'graph-network-ppp0',
-                        'subsection'  => $Lang::tr{'network'},
+                        'subsection'  => $Lang::tr{'interfaces'},
                         'item'        => 'ppp0',
                         'function'    => \&ppp0 );
   }
 
   main::add_mail_item( %common_options,
                        'ident'       => 'graph-network-green0',
-                       'subsection'  => $Lang::tr{'network'},
+                       'subsection'  => $Lang::tr{'interfaces'},
                        'item'        => 'green0',
                        'function'    => \&green0 );
 
@@ -105,7 +105,7 @@ sub BEGIN
     # BLUE
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-blue0',
-                         'subsection'  => $Lang::tr{'network'},
+                         'subsection'  => $Lang::tr{'interfaces'},
                          'item'        => 'blue0',
                          'function'    => \&blue0 );
   }
@@ -115,7 +115,7 @@ sub BEGIN
     # ORANGE
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-orange0',
-                         'subsection'  => $Lang::tr{'network'},
+                         'subsection'  => $Lang::tr{'interfaces'},
                          'item'        => 'orange0',
                          'function'    => \&orange0 );
   }
