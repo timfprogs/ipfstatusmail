@@ -755,14 +755,14 @@ sub _add_table_html( $@ )
       {
         if (not $header_row and $align[$column] ne '<')
         {
-          if ($align[$column] eq '>' and ($fields[$column] =~ m/^\d*\.\d*(?:\s*[-\w\/]+)?$/))
+          if ($align[$column] eq '>' and ($fields[$column] =~ m/^\d*\.\d*(?:\s*[-\w\/%]+)?$/))
           {
             # Decimal number - number align.
             # Note that a number may be followed by a suffix (e.g. unit).
 
             $align[$column] = '#';
           }
-          elsif ($align[$column] ne '<' and $fields[$column] !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/]+)?$/)
+          elsif ($align[$column] ne '<' and $fields[$column] !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/%]+)?$/)
           {
             # Alphanumeric - left align.
 
@@ -896,14 +896,14 @@ sub _add_table_text( $@ )
 
         if (not $header_row and $align[$column] ne '<' and not $ignore_align)
         {
-          if ($align[$column] eq '>' and ($item =~ m/^\d*\.\d*(?:\s*[-\w\/]+)?$/))
+          if ($align[$column] eq '>' and ($item =~ m/^\d*\.\d*(?:\s*[-\w\/%]+)?$/))
           {
             # Decimal number - number align.
             # Note that a number may be followed by a suffix (e.g. unit).
 
             $align[$column] = '#';
           }
-          elsif ($align[$column] ne '<' and $item !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/]+)?$/)
+          elsif ($align[$column] ne '<' and $item !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/%]+)?$/)
           {
             # Alphanumeric - left align.
 
