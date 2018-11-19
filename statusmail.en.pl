@@ -83,5 +83,7 @@
 'statusmail detail' => 'Level of detail',
 'statusmail summary' => 'Summary',
 'statusmail full' => 'Full',
-'statusmail signatures' => 'Signatures: '
+'statusmail signatures' => 'Signatures: ',
+'statusmail hardware' => 'Hardware',
+'statusmail min free percent' => 'Minimum percentage free'
 );
