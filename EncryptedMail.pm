@@ -58,14 +58,7 @@ sub add_subsection( $$ );
 sub add_title( $$ );
 sub is_html( $ );
 sub is_text( $ );
-sub lookup_ip_address( $$ );
 sub get_max_lines_per_item( $ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %address_lookup_cache;
 
 #------------------------------------------------------------------------------
 # sub new( params )
@@ -1033,26 +1026,5 @@ sub clean( $ )
   return HTML::Entities::encode_entities( $string );
 }
 
-
-#------------------------------------------------------------------------------
-# sub lookup_ip_address( string )
-#
-# Converts an IP Address to a URL
-#------------------------------------------------------------------------------
-
-sub lookup_ip_address( $$ )
-{
-  my ($self, $address) = @_;
-
-  use Socket;
-
-  return $address_lookup_cache{$address} if (exists $address_lookup_cache{$address});
-
-  my $name = gethostbyaddr( inet_aton( $address ), AF_INET ) || "";
-
-  $address_lookup_cache{$address} = $name;
-
-  return $name;
-}
 
 1;

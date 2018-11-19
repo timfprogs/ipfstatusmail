@@ -58,6 +58,12 @@ my @monthnames = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
 my %months;
 
 ############################################################################
+# Variables
+############################################################################
+
+my %address_lookup_cache;
+
+############################################################################
 # Function prototypes
 ############################################################################
 
@@ -66,6 +72,8 @@ sub get_period_start();
 sub get_period_end();
 sub get_weeks_covered();
 sub cache( $;$ );
+sub lookup_ip_address( $$ );
+sub set_host_name( $$$ );
 
 
 foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
@@ -417,6 +425,51 @@ sub get_message_log_line
 
   print $line if ($line);
   return $line;
+}
+
+
+#------------------------------------------------------------------------------
+# sub lookup_ip_address( string )
+#
+# Converts an IP Address to a URL
+#------------------------------------------------------------------------------
+
+sub lookup_ip_address( $$ )
+{
+  my ($self, $address) = @_;
+
+  use Socket;
+
+  return $address_lookup_cache{$address} if (exists $address_lookup_cache{$address});
+
+  my $name = gethostbyaddr( inet_aton( $address ), AF_INET ) || "";
+
+  $address_lookup_cache{$address} = $name;
+
+  return $name;
+}
+
+
+#------------------------------------------------------------------------------
+# sub set_host_name( address, name )
+#
+# Records the mapping from an IP address to a name
+#------------------------------------------------------------------------------
+
+sub set_host_name( $$$ )
+{
+  my ($self, $address, $name) = @_;
+
+  return unless ($address and $name);
+  return if ($address eq $name);
+  if (exists $address_lookup_cache{$address})
+  {
+    $address_lookup_cache{$address} = "" if ($address_lookup_cache{$address} ne $name);
+  }
+  else
+  {
+    $address_lookup_cache{$address} = $name;
+  }
 }
 
 
