@@ -88,4 +88,5 @@
 'statusmail min free percent' => 'Minimum percentage free',
 'statusmail disk access' => 'Disk access',
 'statusmail disk temperature' => 'Disk temperature',
+'statusmail blocklist update' => 'Updates'
 );
