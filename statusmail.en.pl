@@ -85,5 +85,7 @@
 'statusmail full' => 'Full',
 'statusmail signatures' => 'Signatures: ',
 'statusmail hardware' => 'Hardware',
-'statusmail min free percent' => 'Minimum percentage free'
+'statusmail min free percent' => 'Minimum percentage free',
+'statusmail disk access' => 'Disk access',
+'statusmail disk temperature' => 'Disk temperature',
 );
