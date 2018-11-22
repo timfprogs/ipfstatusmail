@@ -53,27 +53,12 @@ sub BEGIN
 }
 
 ############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-              MIN    => 1,
-              HOUR   => 2,
-              MDAY   => 3,
-              MON    => 4,
-              YEAR   => 5,
-              WDAY   => 6,
-              YDAY   => 7,
-              ISDST  => 8,
-              MONSTR => 9 };
-
-
-############################################################################
 # Functions
 ############################################################################
 
 sub get_log( $$ );
-sub ssh( $ );
+sub logins( $$ );
+sub errors( $$ );
 
 #------------------------------------------------------------------------------
 # sub get_log( this, name )
@@ -94,7 +79,6 @@ sub get_log( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/ipfire kernel: DROP/);
     next unless ($line =~ m/ipfire sshd/);
 
     # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
