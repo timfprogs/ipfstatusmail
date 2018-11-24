@@ -7,8 +7,6 @@ and the schedule that they are sent on can be defined on a WUI.  The emails can 
 The encrypted emails can be decrypted with Thunderbird + Enigmail on Linux and K-9 Mail + OpenKeychain on Android.  Other
 clients haven't been tested.
 
-**<span style="color:red;">Note: This is still a work in progress</span>**
-
 ## To install
 
 1. Download the installer:
