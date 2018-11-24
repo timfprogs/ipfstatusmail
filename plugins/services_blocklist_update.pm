@@ -27,7 +27,7 @@ require "${General::swroot}/lang.pl";
 use strict;
 use warnings;
 
-package Services_IDS_Update;
+package Services_Blocklist_Update;
 
 use Time::Local;
 
@@ -42,16 +42,16 @@ sub BEGIN
   if (-d "/var/ipfire/blocklist")
   {
     main::add_mail_item( 'ident'      => 'services-ip-blocklist',
-                        'section'    => $Lang::tr{'services'},
-                        'subsection' => $Lang::tr{'blocklists'},
-                        'item'       => $Lang::tr{'statusmail blocklist update'},
-                        'function'   => \&updates );
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'blocklists'},
+                         'item'       => $Lang::tr{'statusmail blocklist update'},
+                         'function'   => \&updates );
 
-   main::add_mail_item( 'ident'      => 'services-ip-blocklist',
-                        'section'    => $Lang::tr{'services'},
-                        'subsection' => $Lang::tr{'blocklists'},
-                        'item'       => $Lang::tr{'statusmail errors'},
-                        'function'   => \&errors );
+    main::add_mail_item( 'ident'      => 'services-ip-blocklist',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'blocklists'},
+                         'item'       => $Lang::tr{'statusmail errors'},
+                         'function'   => \&errors );
   }
 }
 
