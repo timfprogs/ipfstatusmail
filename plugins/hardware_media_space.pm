@@ -89,7 +89,7 @@ sub space( $$ )
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;
-      next if ($percent > $min_percent);
+      next if ($percent < 100 - $min_percent);
     }
     push @lines, [ @fields ];
   }
@@ -120,7 +120,7 @@ sub inodes( $$ )
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;
-      next if ($percent > $min_percent);
+      next if ($percent < 100 - $min_percent);
     }
     push @lines, [ @fields ];
   }
