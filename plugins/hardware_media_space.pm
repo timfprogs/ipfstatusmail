@@ -54,7 +54,7 @@ sub BEGIN
                                          'min'    => 0,
                                          'max'    => 100 } );
 
-  main::add_mail_item( 'ident'      => 'hardware-media-space',
+  main::add_mail_item( 'ident'      => 'hardware-media-inodes',
                        'section'    => $Lang::tr{'statusmail hardware'},
                        'subsection' => $Lang::tr{'media'},
                        'item'       => 'inodes',
@@ -89,12 +89,12 @@ sub space( $$ )
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;
-      next if ($percent < 100 - $min_percent);
+      next if ($percent <= $min_percent);
     }
     push @lines, [ @fields ];
   }
 
-  if (@lines > 2)
+  if (@lines > 1)
   {
     $message->add_table( @lines );
   }
@@ -120,12 +120,12 @@ sub inodes( $$ )
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;
-      next if ($percent < 100 - $min_percent);
+      next if ($percent <= $min_percent);
     }
     push @lines, [ @fields ];
   }
 
-  if (@lines > 2)
+  if (@lines > 1)
   {
     $message->add_table( @lines );
   }
