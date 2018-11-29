@@ -50,7 +50,7 @@ sub BEGIN
                        'item'       => $Lang::tr{'disk usage'},
                        'function'   => \&space,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail min free percent'},
+                                         'name'   => $Lang::tr{'statusmail max free percent'},
                                          'min'    => 0,
                                          'max'    => 100 } );
 
@@ -60,7 +60,7 @@ sub BEGIN
                        'item'       => 'inodes',
                        'function'   => \&inodes,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail min free percent'},
+                                         'name'   => $Lang::tr{'statusmail max free percent'},
                                          'min'    => 0,
                                          'max'    => 100 } );
 }

@@ -68,6 +68,7 @@
 'statusmail kernel out of memory' => 'Out of Memory Killer',
 'statusmail kernel SYN flood' => 'SYN Flood',
 'statusmail kernel raid errors' => 'RAID errors',
+'statusmail error' => 'Error',
 'statusmail kernel segmentation fault' => 'Segmentation faults',
 'statusmail executable' => 'Executable',
 'statusmail kernel general protection fault' => 'General Protection Faults',
@@ -84,7 +85,7 @@
 'statusmail full' => 'Full',
 'statusmail signatures' => 'Signatures: ',
 'statusmail hardware' => 'Hardware',
-'statusmail min free percent' => 'Minimum percentage free',
+'statusmail max free percent' => 'Maximum percentage free',
 'statusmail disk access' => 'Disk access',
 'statusmail disk temperature' => 'Disk temperature',
 'statusmail blocklist update' => 'Updates'

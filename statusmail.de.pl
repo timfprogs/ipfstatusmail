@@ -84,7 +84,7 @@
 'statusmail full' => 'Voll',
 'statusmail signatures' => 'Unterschriften: ',
 'statusmail hardware' => 'Hardware',
-'statusmail min free percent' => 'Mindestprozentsatz frei',
+'statusmail max free percent' => 'maximal freier Prozentsatz',
 'statusmail disk access' => 'Festplattenzugriff',
 'statusmail disk temperature' => 'Plattentemperatur',
 'statusmail blocklist update' => 'Aktualisierung'
