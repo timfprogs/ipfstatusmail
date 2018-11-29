@@ -71,7 +71,7 @@ sub BEGIN
       {
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-red0',
-                            'subsection'  => $Lang::tr{'network'},
+                            'subsection'  => $Lang::tr{'interfaces'},
                             'item'        => 'red0',
                             'function'    => \&red0 );
       }
@@ -79,7 +79,7 @@ sub BEGIN
       {
         main::add_mail_item( %common_options,
                             'ident'       => 'graph-network-ppp0',
-                            'subsection'  => $Lang::tr{'network'},
+                            'subsection'  => $Lang::tr{'interfaces'},
                             'item'        => 'ppp0',
                             'function'    => \&ppp0 );
       }
@@ -89,14 +89,14 @@ sub BEGIN
   {
     main::add_mail_item( %common_options,
                         'ident'       => 'graph-network-ppp0',
-                        'subsection'  => $Lang::tr{'network'},
+                        'subsection'  => $Lang::tr{'interfaces'},
                         'item'        => 'ppp0',
                         'function'    => \&ppp0 );
   }
 
   main::add_mail_item( %common_options,
                        'ident'       => 'graph-network-green0',
-                       'subsection'  => $Lang::tr{'network'},
+                       'subsection'  => $Lang::tr{'interfaces'},
                        'item'        => 'green0',
                        'function'    => \&green0 );
 
@@ -105,7 +105,7 @@ sub BEGIN
     # BLUE
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-blue0',
-                         'subsection'  => $Lang::tr{'network'},
+                         'subsection'  => $Lang::tr{'interfaces'},
                          'item'        => 'blue0',
                          'function'    => \&blue0 );
   }
@@ -115,7 +115,7 @@ sub BEGIN
     # ORANGE
     main::add_mail_item( %common_options,
                          'ident'       => 'graph-network-orange0',
-                         'subsection'  => $Lang::tr{'network'},
+                         'subsection'  => $Lang::tr{'interfaces'},
                          'item'        => 'orange0',
                          'function'    => \&orange0 );
   }
@@ -232,8 +232,25 @@ sub BEGIN
                        'item'        => $Lang::tr{'swap'},
                        'function'    => \&swap );
 
-# 	updatediskgraph( disk, period )
-# 	updatehddgraph( disk, period )          sd? - temperature
+  # Disks
+
+  foreach my $path (glob '/var/log/rrd/collectd/localhost/disk*')
+  {
+    my ($name) = $path =~ m/disk\-(\w+)/;
+
+    main::add_mail_item( %common_options,
+                         'ident'       => "graph-disk-access-$name",
+                         'subsection'  => $Lang::tr{'statusmail disk access'},
+                         'item'        => $name,
+                         'function'    => sub { my ($this, $period) = @_; diskaccess( $this, $name, $period ); } );
+
+    main::add_mail_item( %common_options,
+                         'ident'       => "graph-disk-temp-$name",
+                         'subsection'  => $Lang::tr{'statusmail disk temperature'},
+                         'item'        => $name,
+                         'function'    => sub { my ($this, $period) = @_; disktemp( $this, $name, $period ); } );
+  }
+
 # 	updatepinggraph( host, period )                                     : netother.cgi
 # 	updateprocessescpugraph( period )
 # 	updateprocessesmemorygraph( period )
@@ -532,4 +549,32 @@ sub swap( $$ )
   my ($this, $period) = @_;
 
   add_graph( $this, \&Graphs::updateswapgraph, 'swap.png', $Lang::tr{'swap'}, $period );
+}
+
+
+#------------------------------------------------------------------------------
+# sub diskaccess( $$$ )
+#
+# Adds a graph of the disk access rate
+#------------------------------------------------------------------------------
+
+sub diskaccess( $$$ )
+{
+  my ($this, $name, $period) = @_;
+
+  add_graph( $this, \&Graphs::updatediskgraph, "disk_access_$name.png", $name, $name, $period );
+}
+
+
+#------------------------------------------------------------------------------
+# sub updatehddgraph( $$$ )
+#
+# Adds a graph of the disk temperature
+#------------------------------------------------------------------------------
+
+sub disktemp( $$$ )
+{
+  my ($this, $name, $period) = @_;
+
+  add_graph( $this, \&Graphs::updatehddgraph, "disk_temp_$name.png", $name, $name, $period );
 }

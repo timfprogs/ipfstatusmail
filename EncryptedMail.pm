@@ -58,14 +58,7 @@ sub add_subsection( $$ );
 sub add_title( $$ );
 sub is_html( $ );
 sub is_text( $ );
-sub lookup_ip_address( $$ );
 sub get_max_lines_per_item( $ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %address_lookup_cache;
 
 #------------------------------------------------------------------------------
 # sub new( params )
@@ -755,14 +748,14 @@ sub _add_table_html( $@ )
       {
         if (not $header_row and $align[$column] ne '<')
         {
-          if ($align[$column] eq '>' and ($fields[$column] =~ m/^\d*\.\d*(?:\s*[-\w\/]+)?$/))
+          if ($align[$column] eq '>' and ($fields[$column] =~ m/^\d*\.\d*(?:\s*[-\w\/%]+)?$/))
           {
             # Decimal number - number align.
             # Note that a number may be followed by a suffix (e.g. unit).
 
             $align[$column] = '#';
           }
-          elsif ($align[$column] ne '<' and $fields[$column] !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/]+)?$/)
+          elsif ($align[$column] ne '<' and $fields[$column] !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/%]+)?$/)
           {
             # Alphanumeric - left align.
 
@@ -896,14 +889,14 @@ sub _add_table_text( $@ )
 
         if (not $header_row and $align[$column] ne '<' and not $ignore_align)
         {
-          if ($align[$column] eq '>' and ($item =~ m/^\d*\.\d*(?:\s*[-\w\/]+)?$/))
+          if ($align[$column] eq '>' and ($item =~ m/^\d*\.\d*(?:\s*[-\w\/%]+)?$/))
           {
             # Decimal number - number align.
             # Note that a number may be followed by a suffix (e.g. unit).
 
             $align[$column] = '#';
           }
-          elsif ($align[$column] ne '<' and $item !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/]+)?$/)
+          elsif ($align[$column] ne '<' and $item !~ m/^(?:\d*\.)?\d+(?:\s*[-\w\/%]+)?$/)
           {
             # Alphanumeric - left align.
 
@@ -1033,26 +1026,5 @@ sub clean( $ )
   return HTML::Entities::encode_entities( $string );
 }
 
-
-#------------------------------------------------------------------------------
-# sub lookup_ip_address( string )
-#
-# Converts an IP Address to a URL
-#------------------------------------------------------------------------------
-
-sub lookup_ip_address( $$ )
-{
-  my ($self, $address) = @_;
-
-  use Socket;
-
-  return $address_lookup_cache{$address} if (exists $address_lookup_cache{$address});
-
-  my $name = gethostbyaddr( inet_aton( $address ), AF_INET ) || "";
-
-  $address_lookup_cache{$address} = $name;
-
-  return $name;
-}
 
 1;

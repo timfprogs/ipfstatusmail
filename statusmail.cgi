@@ -1435,7 +1435,7 @@ sub add_mail_item( %)
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
-      return unless ($params{'option'}{'min'} and $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'});
+      return unless (exists $params{'option'}{'min'} and exists $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'});
 
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'} = $params{'option'}{'type'};
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'min'}  = $params{'option'}{'min'};

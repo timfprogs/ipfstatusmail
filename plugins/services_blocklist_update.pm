@@ -27,7 +27,7 @@ require "${General::swroot}/lang.pl";
 use strict;
 use warnings;
 
-package System_Ssh;
+package Services_Blocklist_Update;
 
 use Time::Local;
 
@@ -39,26 +39,29 @@ use Time::Local;
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'system-ssh-logins',
-                       'section'    => $Lang::tr{'system'},
-                       'subsection' => 'SSH',
-                       'item'       => $Lang::tr{'statusmail logins'},
-                       'function'   => \&logins );
+  if (-d "/var/ipfire/blocklist")
+  {
+    main::add_mail_item( 'ident'      => 'services-ip-blocklist',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'blocklists'},
+                         'item'       => $Lang::tr{'statusmail blocklist update'},
+                         'function'   => \&updates );
 
-  main::add_mail_item( 'ident'      => 'system-ssh-errors',
-                       'section'    => $Lang::tr{'system'},
-                       'subsection' => 'SSH',
-                       'item'       => $Lang::tr{'statusmail errors'},
-                       'function'   => \&errors );
+    main::add_mail_item( 'ident'      => 'services-ip-blocklist',
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'blocklists'},
+                         'item'       => $Lang::tr{'statusmail errors'},
+                         'function'   => \&errors );
+  }
 }
 
 ############################################################################
 # Functions
 ############################################################################
 
-sub get_log( $$ );
-sub logins( $$ );
-sub errors( $$ );
+sub updates( $ );
+sub errors( $ );
+sub get_log( $ );
 
 #------------------------------------------------------------------------------
 # sub get_log( this, name )
@@ -66,11 +69,11 @@ sub errors( $$ );
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
-  my $data = $this->cache( 'ssh' );
+  my $data = $this->cache( 'services-blocklist' );
   return $data if (defined $data);
 
   my %info;
@@ -79,73 +82,80 @@ sub get_log( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/ipfire sshd/);
+    next unless ($line =~ m/^\s*\w+\s+\w+\s+\d+:\d+:\d+\s+ipfire blocklist: (.*)/);
 
-    # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
-    if (my ($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
+    my $text = $1;
+
+    if ($line =~ m/Updating (\w+) blocklist/)
     {
-      $info{$type}{"$user||$from"}++;
+      $info{'updates'}{$1}++;
+    }
+    elsif ($line !~ m/Blocklist (\w+) Modification times/   and
+           $line !~ m/Starting IP Blocklist processing/     and
+           $line !~ m/Completed IP Blocklist update/        and
+           $line !~ m/Create IPTables chains for blocklist/ and
+           $line !~ m/Delete IPTables chains for blocklist/)
+    {
+      $info{'errors'}{$text}++
     }
   }
 
-  $this->cache( 'ssh', \%info );
+  $this->cache( 'services-blocklist', \%info );
 
   return \%info;
 }
 
+
+#------------------------------------------------------------------------------
+# sub updates( this, option )
+#
+#
 #------------------------------------------------------------------------------
 
-sub logins( $$ )
+sub updates( $ )
 {
-  my ($self, $min_count) = @_;
+  my ($this) = @_;
   my @table;
 
-  use Sort::Naturally;
+  my $info = get_log( $this );
 
-  push @table, ['|', '|', '|'];
-  push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
+  push @table, ['blocklist', $Lang::tr{'count'}];
 
-  my $stats = get_log( $self, '/var/log/messages' );
-
-  foreach my $who (sort keys %{ $$stats{'Accepted'} } )
+  foreach my $list ( sort keys %{ $$info{'updates'} } )
   {
-    my $count   = $$stats{'Accepted'}{$who};
-    my ($user, $from) = split /\|\|/, $who;
-
-    push @table, [ $user, $from, $count ];
+    push @table, [ $list, $$info{'updates'}{$list} ];
   }
 
-  if (@table > 2)
+  if (@table > 1)
   {
-    $self->add_table( @table );
+    $this->add_table( @table );
   }
 }
 
+
+#------------------------------------------------------------------------------
+# sub errors( this, option )
+#
+#
 #------------------------------------------------------------------------------
 
-sub errors( $$ )
+sub errors( $ )
 {
-  my ($self, $min_count) = @_;
+  my ($this) = @_;
   my @table;
 
-  use Sort::Naturally;
+  my $info = get_log( $this );
 
-  push @table, ['|', '|', '|'];
-  push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
+  push @table, [$Lang::tr{'statusmail error'}, $Lang::tr{'count'}];
 
-  my $stats = get_log( $self, '/var/log/messages' );
-
-  foreach my $who (sort keys %{ $$stats{'Failed'} } )
+  foreach my $list ( sort keys %{ $$info{'errors'} } )
   {
-    my $count   = $$stats{'Failed'}{$who};
-    my ($user, $from) = split /\|\|/, $who;
-
-    push @table, [ $user, $from, $count ];
+    push @table, [ $list, $$info{'errors'}{$list} ];
   }
 
-  if (@table > 2)
+  if (@table > 1)
   {
-    $self->add_table( @table );
+    $this->add_table( @table );
   }
 }
 

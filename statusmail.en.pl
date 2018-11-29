@@ -71,7 +71,7 @@
 'statusmail error' => 'Error',
 'statusmail kernel segmentation fault' => 'Segmentation faults',
 'statusmail executable' => 'Executable',
-'statusmail kernel general protection fault' => 'general Protection Faults',
+'statusmail kernel general protection fault' => 'General Protection Faults',
 'statusmail kernel trap int3' => 'Trap INT3',
 'statusmail kernel unaligned' => 'Unaligned errors',
 'statusmail kernel FP Assists' => 'Floating-point assists',
@@ -83,5 +83,10 @@
 'statusmail detail' => 'Level of detail',
 'statusmail summary' => 'Summary',
 'statusmail full' => 'Full',
-'statusmail signatures' => 'Signatures: '
+'statusmail signatures' => 'Signatures: ',
+'statusmail hardware' => 'Hardware',
+'statusmail max free percent' => 'Maximum percentage free',
+'statusmail disk access' => 'Disk access',
+'statusmail disk temperature' => 'Disk temperature',
+'statusmail blocklist update' => 'Updates'
 );

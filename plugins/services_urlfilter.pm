@@ -153,9 +153,11 @@ sub get_log( $$ )
 
         my @category = split /\//, $type;
 
-        (undef, $client) = split "/", $client;
+        my ($address, $name) = split "/", $client;
 
-        $info{'client'}{"$client"}++;
+        $this->set_host_name( $address, $name ) unless ($address eq $name);
+
+        $info{'client'}{$address}++;
         $info{'destination'}{"$site||$category[1]"}++;
         $info{'count'}++;
       }
@@ -186,6 +188,10 @@ sub clients( $$ )
   {
     my $count = $$stats{'client'}{$client};
     last if ($count < $min_count);
+
+    my $host = $self->lookup_ip_address( $client );
+
+    $client .= "\n$host" if ($host);
 
     push @table, [ $client, $count ];
   }
