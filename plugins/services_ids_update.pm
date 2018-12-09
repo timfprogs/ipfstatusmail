@@ -42,31 +42,16 @@ sub BEGIN
   if (-d "/var/ipfire/idsupdate")
   {
     main::add_mail_item( 'ident'      => 'services-ids-update',
-                        'section'    => $Lang::tr{'services'},
-                        'subsection' => $Lang::tr{'intrusion detection system'},
-                        'item'       => $Lang::tr{'statusmail ids update'},
-                        'function'   => \&updates,
-                        'option'     => { 'type'   => 'select',
-                                          'name'   => $Lang::tr{'statusmail detail'},
-                                          'values' => [ "$Lang::tr{'statusmail summary'}:summary",
-                                                        "$Lang::tr{'statusmail full'}:full" ] } );
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'intrusion detection system'},
+                         'item'       => $Lang::tr{'statusmail ids update'},
+                         'function'   => \&updates,
+                         'option'     => { 'type'   => 'select',
+                                           'name'   => $Lang::tr{'statusmail detail'},
+                                           'values' => [ "$Lang::tr{'statusmail summary'}:summary",
+                                                         "$Lang::tr{'statusmail full'}:full" ] } );
   }
 }
-
-############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-               MIN    => 1,
-               HOUR   => 2,
-               MDAY   => 3,
-               MON    => 4,
-               YEAR   => 5,
-               WDAY   => 6,
-               YDAY   => 7,
-               ISDST  => 8,
-               MONSTR => 9 };
 
 
 ############################################################################
@@ -101,7 +86,7 @@ sub updates( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/^(.*) ipfire idsupdate: (.*)/);
+    next unless ($line =~ m/ idsupdate: (.*)/);
 
     my $time = $1;
 

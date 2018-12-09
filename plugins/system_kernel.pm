@@ -46,36 +46,21 @@ sub BEGIN
                        'function'   => \&errors );
 }
 
-############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-               MIN    => 1,
-               HOUR   => 2,
-               MDAY   => 3,
-               MON    => 4,
-               YEAR   => 5,
-               WDAY   => 6,
-               YDAY   => 7,
-               ISDST  => 8,
-               MONSTR => 9 };
-
 
 ############################################################################
 # Functions
 ############################################################################
 
-sub get_log( $$ );
+sub get_log( $ );
 sub errors( $$ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
   my ($this, $name) = @_;
 
@@ -88,8 +73,8 @@ sub get_log( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/ipfire kernel: /);
-    next if ($line =~ m/ipfire kernel: DROP_/);
+    next unless ($line =~ m/ kernel: /);
+    next if ($line =~ m/ kernel: DROP_/);
 
     if ( my ($from, $if) = $line =~ m/^Warning: possible SYN flood from ([^ ]+) on ([^ ]+):.+ Sending cookies/ )
     {
@@ -154,7 +139,7 @@ sub errors( $$ )
 
   use Sort::Naturally;
 
-  my $alerts = get_log( $self, '/var/log/messages' );
+  my $alerts = get_log( $self );
 
   if (keys %{ $$alerts{SYNflood} })
   {

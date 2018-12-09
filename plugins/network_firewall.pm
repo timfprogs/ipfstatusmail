@@ -82,36 +82,21 @@ sub BEGIN
                                          'max'    => 1000 } );
 }
 
-############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-               MIN    => 1,
-               HOUR   => 2,
-               MDAY   => 3,
-               MON    => 4,
-               YEAR   => 5,
-               WDAY   => 6,
-               YDAY   => 7,
-               ISDST  => 8,
-               MONSTR => 9 };
-
 
 ############################################################################
 # Functions
 ############################################################################
 
-sub get_log( $$ );
+sub get_log( $ );
 sub addresses( $$ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
   my ($this, $name) = @_;
 
@@ -125,7 +110,7 @@ sub get_log( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/ipfire kernel: DROP/);
+    next unless ($line =~ m/kernel: DROP/);
 
     my ($time, $rule, $interface, $src_addrs, $dst_port) =
         $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
@@ -177,7 +162,7 @@ sub addresses( $$ )
   push @table, ['|', '|', '|', '|', '|', '|'];
   push @table, [ $Lang::tr{'ip address'}, $Lang::tr{'country'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $address (sort { $$stats{'by_address'}{$b}{'count'} <=> $$stats{'by_address'}{$a}{'count'} ||
                               ncmp( $b, $a ) } keys %{ $$stats{'by_address'} } )
@@ -224,7 +209,7 @@ sub ports( $$ )
   push @table, ['|', '|', '|', '|', '|'];
   push @table, [ $Lang::tr{'port'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $port (sort { $$stats{'by_port'}{$b}{'count'} <=> $$stats{'by_port'}{$a}{'count'} ||
                            ncmp( $b, $a ) } keys %{ $$stats{'by_port'} } )
@@ -255,7 +240,7 @@ sub countries( $$ )
   push @table, ['<', '|', '|', '|', '|'];
   push @table, [ $Lang::tr{'country'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $country (sort { $$stats{'by_country'}{$b}{'count'} <=> $$stats{'by_country'}{$a}{'count'} } keys %{ $$stats{'by_country'} } )
   {
@@ -287,7 +272,7 @@ sub reasons( $$ )
   push @table, ['<', '|', '|', '|', '|'];
   push @table, [ $Lang::tr{'statusmail firewall reason'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $reason (sort { $$stats{'by_rule'}{$b}{'count'} <=> $$stats{'by_rule'}{$a}{'count'} } keys %{ $$stats{'by_rule'} } )
   {
