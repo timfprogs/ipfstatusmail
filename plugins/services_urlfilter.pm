@@ -80,23 +80,17 @@ use constant { SEC    => 0,
 # Functions
 ############################################################################
 
-sub get_log( $$ );
-
-############################################################################
-# Variables
-############################################################################
-
-my %months;
+sub get_log( $ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
   my $data = $this->cache( 'urlfilter' );
   return $data if (defined $data);
@@ -106,64 +100,69 @@ sub get_log( $$ )
   my @start_time = $this->get_period_start;;
   my @end_time   = $this->get_period_end;
 
-  for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
+  foreach my $name (glob '/var/log/squidGuard/*\.log')
   {
-    my $filename = $filenum < 1 ? $name : "$name.$filenum";
+    next if ($name =~ m/squidGuard.log/);
 
-    if (-r "$filename.gz")
+    for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
     {
-      open IN, "gzip -dc $filename.gz |" or next;
-    }
-    elsif (-r $filename)
-    {
-      open IN, '<', $filename or next;
-    }
-    else
-    {
-      next;
-    }
+      my $filename = $filenum < 1 ? $name : "$name.$filenum";
 
-    foreach my $line (<IN>)
-    {
-      my ($year, $mon, $day, $hour) = split /[\s:-]+/, $line;
-
-      # Check to see if we're within the specified limits.
-      # Note that the minutes and seconds may be incorrect, but since we only deal
-      # in hour boundaries this doesn't matter.
-
-      next if (($year <  ($start_time[YEAR]+1900)) or
-               ($year == ($start_time[YEAR]+1900) and $mon <  ($start_time[MON]+1)) or
-               ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day <  $start_time[MDAY]) or
-               ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day == $start_time[MDAY] and $hour < $start_time[HOUR]));
-
-      last if (($year >  ($end_time[YEAR]+1900)) or
-               ($year == ($end_time[YEAR]+1900) and $mon >  ($end_time[MON]+1)) or
-               ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day >  $end_time[MDAY]) or
-               ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day == $end_time[MDAY] and $hour > $end_time[HOUR]));
-
-      next unless ($line =~ m/Request/);
-
-      if (my ($date, $time, $pid, $type, $destination, $client) = split / /, $line)
+      if (-r "$filename.gz")
       {
-        $destination =~ s#^http://|^https://##;
-        $destination =~ s/\/.*$//;
-        $destination =~ s/:\d+$//;
-        my $site = substr( $destination, 0, 69 );
-        $site .= "..." if (length( $destination ) > 69);
-
-        my @category = split /\//, $type;
-
-        my ($address, $name) = split "/", $client;
-
-        $this->set_host_name( $address, $name ) unless ($address eq $name);
-
-        $info{'client'}{$address}++;
-        $info{'destination'}{"$site||$category[1]"}++;
-        $info{'count'}++;
+        open IN, "gzip -dc $filename.gz |" or next;
       }
-    }
+      elsif (-r $filename)
+      {
+        open IN, '<', $filename or next;
+      }
+      else
+      {
+        next;
+      }
 
-    close IN;
+      foreach my $line (<IN>)
+      {
+        my ($year, $mon, $day, $hour) = split /[\s:-]+/, $line;
+
+        # Check to see if we're within the specified limits.
+        # Note that the minutes and seconds may be incorrect, but since we only deal
+        # in hour boundaries this doesn't matter.
+
+        next if (($year <  ($start_time[YEAR]+1900)) or
+                ($year == ($start_time[YEAR]+1900) and $mon <  ($start_time[MON]+1)) or
+                ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day <  $start_time[MDAY]) or
+                ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day == $start_time[MDAY] and $hour < $start_time[HOUR]));
+
+        last if (($year >  ($end_time[YEAR]+1900)) or
+                ($year == ($end_time[YEAR]+1900) and $mon >  ($end_time[MON]+1)) or
+                ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day >  $end_time[MDAY]) or
+                ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day == $end_time[MDAY] and $hour > $end_time[HOUR]));
+
+        next unless ($line =~ m/Request/);
+
+        if (my ($date, $time, $pid, $type, $destination, $client) = split / /, $line)
+        {
+          $destination =~ s#^http://|^https://##;
+          $destination =~ s/\/.*$//;
+          $destination =~ s/:\d+$//;
+          my $site = substr( $destination, 0, 69 );
+          $site .= "..." if (length( $destination ) > 69);
+
+          my @category = split /\//, $type;
+
+          my ($address, $name) = split "/", $client;
+
+          $this->set_host_name( $address, $name ) unless ($address eq $name);
+
+          $info{'client'}{$address}++;
+          $info{'destination'}{"$site||$category[1]"}++;
+          $info{'count'}++;
+        }
+      }
+
+      close IN;
+    }
   }
 
   $this->cache( 'urlfilter', \%info );
@@ -182,7 +181,7 @@ sub clients( $$ )
 
   push @table, [ $Lang::tr{'urlfilter client'}, $Lang::tr{'count'} ];
 
-  my $stats = get_log( $self, '/var/log/squidGuard/urlfilter.log' );
+  my $stats = get_log( $self );
 
   foreach my $client (sort { $$stats{'client'}{$b} <=> $$stats{'client'}{$a} } keys %{ $$stats{'client'} } )
   {
@@ -213,7 +212,7 @@ sub destinations( $$ )
 
   push @table, [ $Lang::tr{'destination'}, $Lang::tr{'urlfilter category'}, $Lang::tr{'count'} ];
 
-  my $stats = get_log( $self, '/var/log/squidGuard/urlfilter.log' );
+  my $stats = get_log( $self );
 
   foreach my $key (sort { $$stats{'destination'}{$b} <=> $$stats{'destination'}{$a} } keys %{ $$stats{'destination'} } )
   {
