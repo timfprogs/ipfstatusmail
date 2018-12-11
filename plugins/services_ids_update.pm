@@ -88,8 +88,6 @@ sub updates( $$ )
     next unless ($line);
     next unless ($line =~ m/ idsupdate: (.*)/);
 
-    my $time = $1;
-
     if ($line =~ m/Completed update:\s*(\d+)/)
     {
       $active_rules = $1;
@@ -127,10 +125,10 @@ sub updates( $$ )
       push @disabled, [ $1, $2, $3, $4, $5 ];
     }
     elsif ($line !~ m/Starting Snort update check|No updates available|Checking that Snort is running correctly/ and
-            $line !~ m/Getting current rule state|Updating.*rules|Getting rule changes|Writing new update/        and
-            $line !~ m/Telling Snort pid \d+ to re-read rules|Stopping Snort|Starting Snort/)
+           $line !~ m/Getting current rule state|Updating.*rules|Getting rule changes|Writing new update/        and
+           $line !~ m/Telling Snort pid \d+ to re-read rules|Stopping Snort|Starting Snort/)
     {
-      $unrecognised{$2}++;
+      $unrecognised{$1}++;
     }
 
   }
