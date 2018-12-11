@@ -64,7 +64,7 @@ sub errors( $ );
 sub get_log( $ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ sub get_log( $ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/^\s*\w+\s+\w+\s+\d+:\d+:\d+\s+ipfire blocklist: (.*)/);
+    next unless ($line =~ m/^\s*\w+\s+\w+\s+\d+:\d+:\d+\s+\S+ blocklist: (.*)/);
 
     my $text = $1;
 

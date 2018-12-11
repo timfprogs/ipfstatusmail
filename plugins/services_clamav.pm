@@ -56,35 +56,20 @@ sub BEGIN
 }
 
 ############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-               MIN    => 1,
-               HOUR   => 2,
-               MDAY   => 3,
-               MON    => 4,
-               YEAR   => 5,
-               WDAY   => 6,
-               YDAY   => 7,
-               ISDST  => 8,
-               MONSTR => 9 };
-
-############################################################################
 # Functions
 ############################################################################
 
-sub get_log( $$ );
+sub get_log( $ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
   my $data = $this->cache( 'services-clamav' );
   return $data if (defined $data);
@@ -126,7 +111,7 @@ sub alerts( $$ )
 
   push @table, [ $Lang::tr{'statusmail ids alert'}, $Lang::tr{'count'} ];
 
-  my $info = get_log( $self, '/var/log/messages' );
+  my $info = get_log( $self );
 
   foreach my $virus ( sort { $$info{viruses}{$b} <=> $$info{viruses}{$a} || $a cmp $b} keys %{ $$info{viruses} } )
   {
@@ -146,7 +131,7 @@ sub updates( $$ )
   my ($self, $min_count) = @_;
   my @table;
 
-  my $info = get_log( $self, '/var/log/messages' );
+  my $info = get_log( $self );
 
   if (exists $$info{rules})
   {

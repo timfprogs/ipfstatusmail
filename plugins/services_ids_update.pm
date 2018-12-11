@@ -42,31 +42,16 @@ sub BEGIN
   if (-d "/var/ipfire/idsupdate")
   {
     main::add_mail_item( 'ident'      => 'services-ids-update',
-                        'section'    => $Lang::tr{'services'},
-                        'subsection' => $Lang::tr{'intrusion detection system'},
-                        'item'       => $Lang::tr{'statusmail ids update'},
-                        'function'   => \&updates,
-                        'option'     => { 'type'   => 'select',
-                                          'name'   => $Lang::tr{'statusmail detail'},
-                                          'values' => [ "$Lang::tr{'statusmail summary'}:summary",
-                                                        "$Lang::tr{'statusmail full'}:full" ] } );
+                         'section'    => $Lang::tr{'services'},
+                         'subsection' => $Lang::tr{'intrusion detection system'},
+                         'item'       => $Lang::tr{'statusmail ids update'},
+                         'function'   => \&updates,
+                         'option'     => { 'type'   => 'select',
+                                           'name'   => $Lang::tr{'statusmail detail'},
+                                           'values' => [ "$Lang::tr{'statusmail summary'}:summary",
+                                                         "$Lang::tr{'statusmail full'}:full" ] } );
   }
 }
-
-############################################################################
-# Constants
-############################################################################
-
-use constant { SEC    => 0,
-               MIN    => 1,
-               HOUR   => 2,
-               MDAY   => 3,
-               MON    => 4,
-               YEAR   => 5,
-               WDAY   => 6,
-               YDAY   => 7,
-               ISDST  => 8,
-               MONSTR => 9 };
 
 
 ############################################################################
@@ -101,9 +86,7 @@ sub updates( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/^(.*) ipfire idsupdate: (.*)/);
-
-    my $time = $1;
+    next unless ($line =~ m/ idsupdate: (.*)/);
 
     if ($line =~ m/Completed update:\s*(\d+)/)
     {
@@ -142,10 +125,10 @@ sub updates( $$ )
       push @disabled, [ $1, $2, $3, $4, $5 ];
     }
     elsif ($line !~ m/Starting Snort update check|No updates available|Checking that Snort is running correctly/ and
-            $line !~ m/Getting current rule state|Updating.*rules|Getting rule changes|Writing new update/        and
-            $line !~ m/Telling Snort pid \d+ to re-read rules|Stopping Snort|Starting Snort/)
+           $line !~ m/Getting current rule state|Updating.*rules|Getting rule changes|Writing new update/        and
+           $line !~ m/Telling Snort pid \d+ to re-read rules|Stopping Snort|Starting Snort/)
     {
-      $unrecognised{$2}++;
+      $unrecognised{$1}++;
     }
 
   }

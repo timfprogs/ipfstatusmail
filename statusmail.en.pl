@@ -60,6 +60,7 @@
 'statusmail firewall reason' => 'Reason',
 'statusmail period' => 'Period',
 'statusmail ids alerts' => 'Alerts',
+'statusmail ids alert' => 'Alert',
 'statusmail ids min priority' => 'Minimum priority',
 'statusmail logins' => 'Logins',
 'statusmail errors' => 'Errors',

@@ -56,19 +56,19 @@ sub BEGIN
 # Functions
 ############################################################################
 
-sub get_log( $$ );
+sub get_log( $ );
 sub logins( $$ );
 sub errors( $$ );
 
 #------------------------------------------------------------------------------
-# sub get_log( this, name )
+# sub get_log( this )
 #
 #
 #------------------------------------------------------------------------------
 
-sub get_log( $$ )
+sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
   my $data = $this->cache( 'ssh' );
   return $data if (defined $data);
@@ -79,7 +79,7 @@ sub get_log( $$ )
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
-    next unless ($line =~ m/ipfire sshd/);
+    next unless ($line =~ m/ sshd/);
 
     # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
     if (my ($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
@@ -105,7 +105,7 @@ sub logins( $$ )
   push @table, ['|', '|', '|'];
   push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $who (sort keys %{ $$stats{'Accepted'} } )
   {
@@ -133,7 +133,7 @@ sub errors( $$ )
   push @table, ['|', '|', '|'];
   push @table, [ $Lang::tr{'user'}, $Lang::tr{'from'}, $Lang::tr{'count'} ];
 
-  my $stats = get_log( $self, '/var/log/messages' );
+  my $stats = get_log( $self );
 
   foreach my $who (sort keys %{ $$stats{'Failed'} } )
   {
