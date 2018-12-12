@@ -19,6 +19,7 @@ play.png /srv/web/ipfire/html/images root.root 0644
 plugins/graphs.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/hardware_media_space.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/network_firewall.pm /var/ipfire/statusmail nobody.nobody 0644
+plugins/services-ups-apc.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/services_blocklist_update.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/services_clamav.pm /var/ipfire/statusmail nobody.nobody 0644
 plugins/services_ids_update.pm /var/ipfire/statusmail nobody.nobody 0644
