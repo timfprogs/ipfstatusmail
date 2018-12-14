@@ -54,7 +54,7 @@
 'statusmail period covered' => 'Periodo cubierto',
 'statusmail lines per item' => 'Líneas por artículo',
 'statusmail no period covered' => 'No hay período cubierto especificado',
-'statusmail no period covered' => 'No hay líneas por elemento especificado',
+'statusmail no lines per item' => 'No hay líneas por elemento especificado',
 'statusmail statistics' => 'Estadística',
 'statusmail firewall min count' => 'Conteo mínimo',
 'statusmail firewall reason' => 'Razón',
