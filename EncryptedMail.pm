@@ -25,7 +25,6 @@
 use strict;
 use warnings;
 
-use HTML::Entities;
 use MIME::Lite;
 use IPC::Open2;
 use IO::Select;
@@ -107,7 +106,7 @@ sub new( @ )
 
   if ($self->{'format'} eq 'html')
   {
-    $self->{'message'} = "<html>\n<head>\n";
+    $self->{'message'} = "<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n";
 
     if ($self->{'stylesheet'})
     {
@@ -136,19 +135,20 @@ sub new( @ )
   # Create an email message object
 
   $self->{'object'} = MIME::Lite->new( Type     => 'multipart/related',
-                                       Encoding => 'binary' );
+                                       Encoding => '7bit' );
 
   # Create the main part of the message
 
   if ($self->{format} eq 'html')
   {
     $self->{'text'} = $self->{'object'}->attach( Type     => 'text/html',
-                                                 Encoding => '8bit' );
+                                                 Encoding => 'quoted-printable' );
+    $self->{'text'}->attr('content-type.charset' => 'UTF-8');
   }
   else
   {
     $self->{'text'} = $self->{'object'}->attach( Type     => 'TEXT',
-                                                 Encoding => '8bit' );
+                                                 Encoding => 'quoted-printable' );
   }
 
   return $self;
@@ -328,7 +328,7 @@ sub send( $@ )
   {
     # Find the keys of the recipients and build the GPG command
 
-    $cmd = "$gpg --batch --encrypt --armour --always-trust";
+    $cmd = "$gpg --batch --encrypt --armour --always-trust --charset UTF8";
 
     foreach my $recipient ( @{ $self->{'to'} } )
     {
