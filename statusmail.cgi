@@ -26,7 +26,6 @@ use CGI qw/:standard/;
 use CGI::Carp 'fatalsToBrowser';
 
 use IPC::Open3;
-use HTML::Entities;
 
 require '/var/ipfire/general-functions.pl';
 require "${General::swroot}/lang.pl";
@@ -55,7 +54,6 @@ sub get_keys();
 sub save_settings( $$ );
 sub read_settings( $$ );
 sub check_schedule( % );
-sub clean( $ );
 sub toggle_on_off( $ );
 
 ###############################################################################
@@ -484,8 +482,8 @@ END
       print "<tr bgcolor='$color{'color22'}'>";
     }
 
-    my $name  = clean( $keys{$fingerprint}{'userid'} );
-    my $email = clean( $keys{$fingerprint}{'email'} );
+    my $name  = $keys{$fingerprint}{'userid'};
+    my $email = $keys{$fingerprint}{'email'};
 
     print <<END
   <td align='center'>$name</td>
@@ -529,18 +527,16 @@ sub show_contacts()
   my $current_address = '';
   my $keyid           = '';
   my $enable          = 0;
-  my $name            = '';
 
   Header::openbox('100%', 'left', $Lang::tr{'statusmail contacts'});
 
   if ($current_contact)
   {
     $button          = $Lang::tr{'update'};
-    $name            = clean( $current_address );
 
     if (exists $contacts{$current_contact})
     {
-      $current_address = clean( $contacts{$current_contact}{'email'} );
+      $current_address = $contacts{$current_contact}{'email'};
       $keyid           = $contacts{$current_contact}{'keyid'};
     }
   }
@@ -553,7 +549,7 @@ sub show_contacts()
       <tr>
         <td width='15%'>$Lang::tr{'statusmail name'}</td>
         <td>
-          <input type='text' name='name' value='$name'>
+          <input type='text' name='name' value='$current_address'>
         </td>
         <td>$Lang::tr{'statusmail email'}</td>
         <td>
@@ -605,7 +601,6 @@ END
     my $col = '';
     my $gif;
     my $gdesc;
-    my $name = clean( $contact );
 
     if ($current_contact eq $contact)
     {
@@ -632,7 +627,7 @@ END
     }
 
     print <<END
-  <td align='center'>$name</td>
+  <td align='center'>$contact</td>
   <td align='center'>$contacts{$contact}{'email'}</td>
   <td align='center'>$contacts{$contact}{'keyid'}</td>
 
@@ -640,7 +635,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='CONTACT_ACTION' value='toggle contact' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/$gif' alt='$gdesc' title='$gdesc' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$contact' />
   </form>
   </td>
 
@@ -648,7 +643,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='CONTACT_ACTION' value='edit contact' />
   <input type='image' name='$Lang::tr{'edit'}' src='/images/edit.gif' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$contact' />
   </form>
   </td>
 
@@ -656,7 +651,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='CONTACT_ACTION' value='remove contact' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/delete.gif' alt='$Lang::tr{'remove'}' title='$Lang::tr{'remove'}' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$contact' />
   </form>
   </td>
   </tr>
@@ -691,8 +686,6 @@ sub show_schedules()
                           'hours'   => 0,
                           'enable'  => 0 );
 
-  my $name            = clean( $current_schedule );
-
   Header::openbox('100%', 'left', $Lang::tr{'statusmail schedules'});
 
   if ($current_schedule)
@@ -713,7 +706,7 @@ sub show_schedules()
       <tr>
         <td width='15%'>$Lang::tr{'statusmail name'}</td>
         <td colspan='3'>
-          <input type='text' name='name' value='$name' size='80'>
+          <input type='text' name='name' value='$current_schedule' size='80'>
         </td>
       </tr>
       <tr>
@@ -733,9 +726,8 @@ END
   {
     my $select = '';
     $select    = ' selected' if ($schedule{'email'} =~ m/$contact/);
-    my $name   = clean($contact);
 
-    print "<option value='$name'$select>$name</option>\n";
+    print "<option value='$contact'$select>$contact</option>\n";
   }
 
   my $select_html   = $schedule{'format'}      ne 'text'   ? ' selected' : '';
@@ -888,11 +880,11 @@ END
 
   foreach my $section (sort keys %items)
   {
-    print "<tr style='height:3em'><td colspan='4'><h3>" . clean( $section ) . "</h3></td></tr>\n";
+    print "<tr style='height:3em'><td colspan='4'><h3>$section</h3></td></tr>\n";
 
     foreach my $subsection (sort keys %{ $items{$section} } )
     {
-      print "<tr style='height:2em'><td colspan='4'><h4 style='padding-left: 20px'>" . clean( $subsection ) . "</h4></td></tr>\n";
+      print "<tr style='height:2em'><td colspan='4'><h4 style='padding-left: 20px'>$subsection</h4></td></tr>\n";
 
       foreach my $item (sort keys %{ $items{$section}{$subsection} } )
       {
@@ -909,14 +901,14 @@ END
 
         $checked = ' checked' if ($schedule{"enable_${name}"} eq 'on');
 
-        print "<tr class='$class'$hidden><td><span style='padding-left: 40px; line-height: 2.2'>" . clean( $item ) . "</span></td>\n";
+        print "<tr class='$class'$hidden><td><span style='padding-left: 40px; line-height: 2.2'>$item</span></td>\n";
         print "<td><input type='checkbox' name='enable_${name}'$checked></td>\n";
 
         if (exists $items{$section}{$subsection}{$item}{'option'})
         {
-          my $key = clean( "value_$name" );
+          my $key = "value_$name";
 
-          print "<td>" . clean( $items{$section}{$subsection}{$item}{'option'}{'name'} ) . "</td>\n";
+          print "<td>$items{$section}{$subsection}{$item}{'option'}{'name'}</td>\n";
 
           if ($items{$section}{$subsection}{$item}{'option'}{'type'} eq 'integer')
           {
@@ -943,8 +935,6 @@ END
 
               my $select = '';
               $select    = ' selected' if ($current eq $value);
-
-              my $text   = clean( $name );
 
               print "<option value='$value'$select>$name</option>\n";
             }
@@ -988,9 +978,8 @@ END
     my $col = '';
     my $gif;
     my $gdesc;
-    my $name = clean( $schedule );
 
-    if ($current_contact eq $name)
+    if ($current_contact eq $schedule)
     {
       print "<tr bgcolor='${Header::colouryellow}'>";
     }
@@ -1015,13 +1004,13 @@ END
     }
 
     print <<END
-  <td>$name</td>
+  <td>$schedule</td>
 
   <td align='center'>
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='SCHEDULE_ACTION' value='toggle schedule' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/$gif' alt='$gdesc' title='$gdesc' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$schedule' />
   </form>
   </td>
 
@@ -1029,7 +1018,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='SCHEDULE_ACTION' value='execute schedule' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/play.png' '$Lang::tr{'statusmail execute'}' title='$Lang::tr{'statusmail execute'}' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$schedule' />
   </form>
   </td>
 
@@ -1037,7 +1026,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='SCHEDULE_ACTION' value='edit schedule' />
   <input type='image' name='$Lang::tr{'edit'}' src='/images/edit.gif' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$schedule' />
   </form>
   </td>
 
@@ -1045,7 +1034,7 @@ END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
   <input type='hidden' name='SCHEDULE_ACTION' value='remove schedule' />
   <input type='image' name='$Lang::tr{'remove'}' src='/images/delete.gif' alt='$Lang::tr{'remove'}' title='$Lang::tr{'remove'}' />
-  <input type='hidden' name='KEY' value='$name' />
+  <input type='hidden' name='KEY' value='$schedule' />
   </form>
   </td>
   </tr>
@@ -1443,20 +1432,6 @@ sub add_mail_item( %)
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'} = $params{'option'}{'name'};
     }
   }
-}
-
-
-#------------------------------------------------------------------------------
-# sub clean( string )
-#
-# Converts a string into one that clean in HTML terms.
-#------------------------------------------------------------------------------
-
-sub clean( $ )
-{
-  my ($string) = @_;
-
-  return HTML::Entities::encode_entities( $string );
 }
 
 

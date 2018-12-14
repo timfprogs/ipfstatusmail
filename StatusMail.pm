@@ -151,12 +151,14 @@ sub calculate_period( $$ )
   }
   else
   {
+    my $seconds = $value;
+
     # Go back the specified number of hours, days or weeks
 
-    $value     *= 24      if ($unit eq 'days');
-    $value     *= 24 *  7 if ($unit eq 'weeks');
+    $seconds   *= 24      if ($unit eq 'days');
+    $seconds   *= 24 *  7 if ($unit eq 'weeks');
 
-    $start_time = timelocal( @end_time ) - ($value * 3600);
+    $start_time = timelocal( @end_time ) - ($seconds * 3600);
     @start_time = localtime( $start_time );
   }
 
@@ -180,7 +182,24 @@ sub calculate_period( $$ )
   $self->{'end_time_array'}   = \@end_time;
   $self->{'end_time'}         = $end_time;
   $self->{'weeks_covered'}    = $weeks_covered;
+  $self->{'period'}           = "$value$unit";
+  $self->{'period'}           =~ s/s$//
 }
+
+
+#------------------------------------------------------------------------------
+# sub get_period()
+#
+# Returns the period covered by a report.
+#------------------------------------------------------------------------------
+
+sub get_period()
+{
+  my $self = shift;
+
+  return $self->{'period'};
+}
+
 
 #------------------------------------------------------------------------------
 # sub get_period_start()

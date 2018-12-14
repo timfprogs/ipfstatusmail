@@ -25,7 +25,6 @@
 use strict;
 use warnings;
 
-use HTML::Entities;
 use MIME::Lite;
 use IPC::Open2;
 use IO::Select;
@@ -107,7 +106,7 @@ sub new( @ )
 
   if ($self->{'format'} eq 'html')
   {
-    $self->{'message'} = "<html>\n<head>\n";
+    $self->{'message'} = "<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n";
 
     if ($self->{'stylesheet'})
     {
@@ -136,19 +135,20 @@ sub new( @ )
   # Create an email message object
 
   $self->{'object'} = MIME::Lite->new( Type     => 'multipart/related',
-                                       Encoding => 'binary' );
+                                       Encoding => '7bit' );
 
   # Create the main part of the message
 
   if ($self->{format} eq 'html')
   {
     $self->{'text'} = $self->{'object'}->attach( Type     => 'text/html',
-                                                 Encoding => '8bit' );
+                                                 Encoding => 'quoted-printable' );
+    $self->{'text'}->attr('content-type.charset' => 'UTF-8');
   }
   else
   {
     $self->{'text'} = $self->{'object'}->attach( Type     => 'TEXT',
-                                                 Encoding => '8bit' );
+                                                 Encoding => 'quoted-printable' );
   }
 
   return $self;
@@ -328,7 +328,7 @@ sub send( $@ )
   {
     # Find the keys of the recipients and build the GPG command
 
-    $cmd = "$gpg --batch --encrypt --armour --always-trust";
+    $cmd = "$gpg --batch --encrypt --armour --always-trust --charset UTF8";
 
     foreach my $recipient ( @{ $self->{'to'} } )
     {
@@ -416,7 +416,6 @@ sub add_section( $$ )
     $self->{message}    .= "</div>\n" if ($self->{in_item});
     $self->{message}    .= "</div>\n" if ($self->{in_subsection});
     $self->{message}    .= "</div>\n" if ($self->{in_section});
-    $name                = clean( $name );
     $self->{section}     = "<div class='section'><h2>$name</h2>\n";
   }
   else
@@ -451,7 +450,6 @@ sub add_subsection( $$ )
   {
     $self->{message}    .= "</div>\n" if ($self->{in_item});
     $self->{message}    .= "</div>\n" if ($self->{in_subsection});
-    $name                = clean( $name );
     $self->{subsection}  = "<div class='subsection'><h3>$name</h3>\n";
   }
   else
@@ -481,7 +479,6 @@ sub add_title( $$ )
   if ($self->{format} eq 'html')
   {
     $self->{message}    .= "</div>\n" if ($self->{in_item});
-    $string       = clean( $string );
     $self->{item} = "<div class='item'><h4>$string</h4>\n";
   }
   else
@@ -798,7 +795,7 @@ sub _add_table_html( $@ )
 
     for (my $column = 0 ; $column < @fields ; $column++)
     {
-      my $item  = clean( $fields[$column] );
+      my $item  = $fields[$column];
       my $tag   = 'td';
       my $align = ' style="text-align: right"';
 
@@ -1010,20 +1007,6 @@ sub _add_table_text( $@ )
 
   $self->add( $text );
   $self->{empty}    = 0;
-}
-
-
-#------------------------------------------------------------------------------
-# sub clean( string )
-#
-# Cleans a string to be safe in HTML
-#------------------------------------------------------------------------------
-
-sub clean( $ )
-{
-  my ($string) = @_;
-
-  return HTML::Entities::encode_entities( $string );
 }
 
 

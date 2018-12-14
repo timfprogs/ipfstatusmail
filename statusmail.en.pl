@@ -54,7 +54,7 @@
 'statusmail period covered' => 'Period covered',
 'statusmail lines per item' => 'Lines per item',
 'statusmail no period covered' => 'No period covered specified',
-'statusmail no period covered' => 'No lines per item specified',
+'statusmail no lines per item' => 'No lines per item specified',
 'statusmail statistics' => 'Statistics',
 'statusmail firewall min count' => 'Minimum count',
 'statusmail firewall reason' => 'Reason',
@@ -89,5 +89,7 @@
 'statusmail max free percent' => 'Maximum percentage free',
 'statusmail disk access' => 'Disk access',
 'statusmail disk temperature' => 'Disk temperature',
-'statusmail blocklist update' => 'Updates'
+'statusmail blocklist update' => 'Updates',
+'statusmail events' => 'Events',
+'statusmail event' => 'Event'
 );
