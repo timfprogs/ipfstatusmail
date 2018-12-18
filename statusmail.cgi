@@ -455,7 +455,7 @@ END
   </form>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='20%'>$Lang::tr{'statusmail name'}</th>
+    <th width='20%'>$Lang::tr{'statusmail contact name'}</th>
     <th width='20%'>$Lang::tr{'statusmail email'}</th>
     <th width='15%'>$Lang::tr{'statusmail keyid'}</th>
     <th width='25%'>$Lang::tr{'statusmail fingerprint'}</th>
@@ -547,7 +547,7 @@ sub show_contacts()
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
     <table width='100%' cellspacing='1'>
       <tr>
-        <td width='15%'>$Lang::tr{'statusmail name'}</td>
+        <td width='15%'>$Lang::tr{'statusmail contact name'}</td>
         <td>
           <input type='text' name='name' value='$current_address'>
         </td>
@@ -585,7 +585,7 @@ END
   <hr>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='25%'>$Lang::tr{'statusmail name'}</th>
+    <th width='25%'>$Lang::tr{'statusmail contact name'}</th>
     <th width='40%'>$Lang::tr{'statusmail email'}</th>
     <th width='25%'>$Lang::tr{'statusmail key'}</th>
     <th colspan='3'>$Lang::tr{'statusmail action'}</th>
@@ -704,7 +704,7 @@ sub show_schedules()
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
     <table width='100%' cellspacing='1'>
       <tr>
-        <td width='15%'>$Lang::tr{'statusmail name'}</td>
+        <td width='15%'>$Lang::tr{'statusmail schedule name'}</td>
         <td colspan='3'>
           <input type='text' name='name' value='$current_schedule' size='80'>
         </td>
@@ -964,7 +964,7 @@ END
   <hr>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='90%'>$Lang::tr{'statusmail name'}</th>
+    <th width='90%'>$Lang::tr{'statusmail schedule name'}</th>
     <th colspan='4'>$Lang::tr{'statusmail action'}</th>
   </tr>
 END
