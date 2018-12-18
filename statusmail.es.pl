@@ -89,5 +89,7 @@
 'statusmail max free percent' => 'Porcentaje libre máximo',
 'statusmail disk access' => 'Acceso a disco',
 'statusmail disk temperature' => 'Temperatura del disco',
-'statusmail blocklist update' => 'Actualizaciones'
+'statusmail blocklist update' => 'Actualizaciones',
+'statusmail events' => 'Eventos',
+'statusmail event' => 'Evento'
 );
