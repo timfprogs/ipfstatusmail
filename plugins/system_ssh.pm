@@ -75,16 +75,20 @@ sub get_log( $ )
 
   my %info;
   my $line;
+  my ($type, $user, $from);
 
   while ($line = $this->get_message_log_line)
   {
     next unless ($line);
     next unless ($line =~ m/ sshd/);
 
-    # (Accepted|Failed) password for (root) from (192.168.1.199) port 36868 ssh2
-    if (my ($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
+    if (($type, $user, $from) = $line =~ m/(\w+) password for (?:illegal|invalid user )?(.+) from (.+) port/)
     {
       $info{$type}{"$user||$from"}++;
+    }
+    elsif (($user, $from) = $line =~ m/Accepted publickey for (.*) from (.*) port/)
+    {
+      $info{'Accepted'}{"$user||$from"}++;
     }
   }
 
