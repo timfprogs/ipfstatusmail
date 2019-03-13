@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -35,8 +35,8 @@ package System_Status_Services;
 ############################################################################
 
 sub services( $ );
-sub isrunning( $$ );
-sub isrunningaddon( $$ );
+sub isrunning( $ );
+sub isrunningaddon( $ );
 
 ############################################################################
 # Function prototypes
@@ -95,6 +95,7 @@ sub services( $ )
       $Lang::tr{'web proxy'} => 'squid',
       'OpenVPN' => 'openvpn'
     );
+
  my %fullname = (
       $Lang::tr{'dhcp server'} => "$Lang::tr{'dhcp server'}",
       $Lang::tr{'web server'} => $Lang::tr{'web server'},
@@ -122,6 +123,8 @@ sub services( $ )
     chomp $iface;
   }
 
+  # Find the names of the Snort processes
+
   $servicenames{"$Lang::tr{'intrusion detection system'} (RED)"}   = "snort_${iface}";
   $servicenames{"$Lang::tr{'intrusion detection system'} (GREEN)"} = "snort_$netsettings{'GREEN_DEV'}";
 
@@ -135,6 +138,8 @@ sub services( $ )
     $servicenames{"$Lang::tr{'intrusion detection system'} (BLUE)"} = "snort_$netsettings{'BLUE_DEV'}";
   }
 
+  # Item title and table heading
+
   $message->add_title( $Lang::tr{'services'} );
 
   if ($message->is_html)
@@ -147,10 +152,12 @@ sub services( $ )
     push @output, [ $Lang::tr{'services'}, $Lang::tr{'status'}, 'PID', $Lang::tr{'memory'} ];
   }
 
+  # Get the service statuses
+
   foreach my $key (sort keys %servicenames)
   {
     my $shortname = $servicenames{$key};
-    my @status = isrunning( $message, $shortname );
+    my @status = isrunning( $shortname );
 
     if ($message->is_html)
     {
@@ -168,6 +175,8 @@ sub services( $ )
       push @output, [ $key, @status ];
     }
   }
+
+  # Output the table and the header for the addons
 
   if ($message->is_html)
   {
@@ -190,6 +199,8 @@ sub services( $ )
 
     push @output, [ $Lang::tr{'services'}, $Lang::tr{'status'}, '', $Lang::tr{'memory'} ];
   }
+
+  # Get the status of the addons
 
   my @pak = `find /opt/pakfire/db/installed/meta-* 2>/dev/null | cut -d"-" -f2`;
 
@@ -214,7 +225,7 @@ sub services( $ )
       if ( ($key ne "alsa") and ($key ne "mdadm") )
       {
         my $shortname = $servicenames{$key};
-        my @status = isrunningaddon( $message, $key );
+        my @status = isrunningaddon( $message );
 
         if ($message->is_html)
         {
@@ -245,11 +256,23 @@ sub services( $ )
   {
     $message->add_table( @output );
   }
+
+  return 1;
 }
 
-sub isrunning( $$ )
+
+#------------------------------------------------------------------------------
+# sub isrunning( cmd )
+#
+# Gets the status of a system service
+#
+# Parameters:
+#   cmd  Service command name
+#------------------------------------------------------------------------------
+
+sub isrunning( $ )
 {
-  my ($message, $cmd) = @_;
+  my ($cmd) = @_;
   my @status;
   my $pid     = '';
   my $testcmd = '';
@@ -304,10 +327,18 @@ sub isrunning( $$ )
 }
 
 
+#------------------------------------------------------------------------------
+# sub isrunningaddon
+#
+# Gets the status of an addon service
+#
+# Parameters:
+#   cmd  Service command name
+#------------------------------------------------------------------------------
 
-sub isrunningaddon( $$ )
+sub isrunningaddon( $ )
 {
-  my ($message, $cmd) = @_;
+  my ($cmd) = @_;
   my @status;
   my $pid = '';
   my $exename;

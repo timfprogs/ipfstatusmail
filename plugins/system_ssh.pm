@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -63,7 +63,13 @@ sub errors( $$ );
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets log entries for ssh and caches the results
 #
+# Parameters:
+#   this       message object
+#
+# Returns:
+#   Reference to hash of ssh data
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
@@ -97,11 +103,19 @@ sub get_log( $ )
   return \%info;
 }
 
+
+#------------------------------------------------------------------------------
+# sub logins( this )
+#
+# Outputs information on ssh logins.
+#
+# Parameters:
+#   this       message object
 #------------------------------------------------------------------------------
 
 sub logins( $$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self) = @_;
   my @table;
 
   use Sort::Naturally;
@@ -122,14 +136,26 @@ sub logins( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub errors( this )
+#
+# Outputs information on ssh errors.
+#
+# Parameters:
+#   this       message object
 #------------------------------------------------------------------------------
 
 sub errors( $$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self) = @_;
   my @table;
 
   use Sort::Naturally;
@@ -150,7 +176,11 @@ sub errors( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;

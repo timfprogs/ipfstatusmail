@@ -67,8 +67,34 @@ if [[ $phase2 == "no" ]]; then
   echo Failed to exec $0
 fi
 
-echo
-
 # Update language cache
 
 update-lang-cache
+
+# There have been changes made to file locations and formats
+# Convert setting file formats
+
+if [[ ! -e /var/ipfire/statusmail/contact_settings && -e /var/ipfire/statusmail/contacts ]]; then
+  sudo -u nobody ./convert.pl /var/ipfire/statusmail/contacts /var/ipfire/statusmail/contact_settings contacts
+  rm /var/ipfire/statusmail/contacts
+fi
+
+if [[ ! -e /var/ipfire/statusmail/schedule_settings && -e /var/ipfire/statusmail/schedules ]]; then
+  sudo -u nobody ./convert.pl /var/ipfire/statusmail/schedules /var/ipfire/statusmail/schedule_settings schedules
+  rm /var/ipfire/statusmail/schedules
+fi
+
+rm convert.pl
+
+# Delete the old plugin directory
+
+if [[ -d /var/ipfire/plugins ]]; then
+  rm -r /var/ipfire/plugins
+fi
+
+# Link to the main script from the fcron directory
+
+if [[ -e /etc/fcron.hourly/statusmail.sh ]]; then
+  rm /etc/fcron.hourly/statusmail.sh
+  ln -fs /usr/lib/statusmail/statusmail.sh /etc/fcron.hourly/statusmail
+fi

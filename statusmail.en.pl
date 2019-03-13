@@ -91,5 +91,9 @@
 'statusmail disk temperature' => 'Disk temperature',
 'statusmail blocklist update' => 'Updates',
 'statusmail events' => 'Events',
-'statusmail event' => 'Event'
+'statusmail event' => 'Event',
+'statusmail period from' => 'From',
+'statusmail period to' => 'to',
+'statusmail show' => 'Show',
+'statusmail hide' => 'Hide'
 );

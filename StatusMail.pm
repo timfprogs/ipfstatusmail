@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,14 +18,14 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
 use strict;
 use warnings;
 
-use lib "/var/ipfire/statusmail";
+use lib "/usr/lib/statusmail";
 
 package StatusMail;
 
@@ -54,7 +54,8 @@ use constant LOGNAME => '/var/log/messages';
 # Configuration variables
 ############################################################################
 
-my @monthnames = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+my @monthnames = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+                  'Sep', 'Oct', 'Nov', 'Dec');
 my %months;
 
 ############################################################################
@@ -74,6 +75,10 @@ sub get_weeks_covered();
 sub cache( $;$ );
 sub lookup_ip_address( $$ );
 sub set_host_name( $$$ );
+
+############################################################################
+# Initialisation code
+############################################################################
 
 
 foreach (my $monindex = 0 ; $monindex < MONTHS ; $monindex++)
@@ -151,14 +156,14 @@ sub calculate_period( $$ )
   }
   else
   {
-    my $seconds = $value;
+    my $hours   = $value;
 
     # Go back the specified number of hours, days or weeks
 
-    $seconds   *= 24      if ($unit eq 'days');
-    $seconds   *= 24 *  7 if ($unit eq 'weeks');
+    $hours     *= 24      if ($unit eq 'days');
+    $hours     *= 24 *  7 if ($unit eq 'weeks');
 
-    $start_time = timelocal( @end_time ) - ($seconds * 3600);
+    $start_time = timelocal( @end_time ) - ($hours * 3600);
     @start_time = localtime( $start_time );
   }
 
@@ -183,7 +188,8 @@ sub calculate_period( $$ )
   $self->{'end_time'}         = $end_time;
   $self->{'weeks_covered'}    = $weeks_covered;
   $self->{'period'}           = "$value$unit";
-  $self->{'period'}           =~ s/s$//
+  $self->{'period'}           =~ s/s$//;
+  $self->{'total_days'}       = ($end_time - $start_time) / 86400;
 }
 
 
@@ -291,6 +297,7 @@ sub clear_cache()
 # sub get_message_log_line()
 #
 # Gets the next line from the message log.
+# Will cache log entries if the period covered is short.
 #------------------------------------------------------------------------------
 
 sub get_message_log_line
@@ -386,7 +393,8 @@ sub get_message_log_line
       {
         # Hour, day or month changed.  Convert to unix time so we can work out
         # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information.
+        # This is complicated by the lack of a year in the logged information,
+        # so assume the current year, and adjust if necessary.
 
         my @time;
 
@@ -408,7 +416,7 @@ sub get_message_log_line
         }
         elsif ($self->{time} < $self->{last_time})
         {
-          # Time is increasing, so we must have gone over a year boundary.
+          # Time should be increasing, so we must have gone over a year boundary.
 
           $self->{year}++;
           $time[YEAR]++;
@@ -436,7 +444,9 @@ sub get_message_log_line
         return undef;
       }
 
-      push @{$self->{logcache}}, $line if ($self->{'weeks_covered'} <= 1);
+      # Cache the entry if the time covered is less than two days
+
+      push @{$self->{logcache}}, $line if ($self->{'total_days'} <= 2);
 
       return $line;
     }
@@ -481,6 +491,7 @@ sub set_host_name( $$$ )
 
   return unless ($address and $name);
   return if ($address eq $name);
+
   if (exists $address_lookup_cache{$address})
   {
     $address_lookup_cache{$address} = "" if ($address_lookup_cache{$address} ne $name);

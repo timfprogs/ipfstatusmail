@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -66,7 +66,13 @@ sub get_log( $ );
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets information on IP Blocklist updates from the system log and caches it.
 #
+# Parameters:
+#   this  message object
+#
+# Returns:
+#   reference to hash of information
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
@@ -107,9 +113,12 @@ sub get_log( $ )
 
 
 #------------------------------------------------------------------------------
-# sub updates( this, option )
+# sub updates( this )
 #
+# Outputs information on blocklist updates.
 #
+# Parameters:
+#   this  message object
 #------------------------------------------------------------------------------
 
 sub updates( $ )
@@ -129,14 +138,21 @@ sub updates( $ )
   if (@table > 1)
   {
     $this->add_table( @table );
+
+    return 1;
   }
+
+  return 0
 }
 
 
 #------------------------------------------------------------------------------
-# sub errors( this, option )
+# sub errors( this )
 #
+# Outputs information on blocklist update errors.
 #
+# Parameters:
+#   this  message object
 #------------------------------------------------------------------------------
 
 sub errors( $ )
@@ -156,7 +172,11 @@ sub errors( $ )
   if (@table > 1)
   {
     $this->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;
