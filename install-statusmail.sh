@@ -88,9 +88,13 @@ rm convert.pl
 
 # Delete the old plugin directory
 
-if [[ -d /var/ipfire/plugins ]]; then
-  rm -r /var/ipfire/plugins
+if [[ -d /var/ipfire/statusmail/plugins ]]; then
+  rm -r /var/ipfire/statusmail/plugins
 fi
+
+rm -f /var/ipfile/statusmail/*.pm
+rm -f /var/ipfile/statusmail/stylesheet.css
+rm -f /var/ipfile/statusmail/generate_signature.sh
 
 # Link to the main script from the fcron directory
 
