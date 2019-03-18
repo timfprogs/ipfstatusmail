@@ -4,7 +4,8 @@
 'statusmail status emails' => 'Correos electrónicos de estado',
 'statusmail contacts' => 'Contactos',
 'statusmail schedules' => 'Horarios',
-'statusmail name' => 'Nombre',
+'statusmail schedule name' => 'Nombre',
+'statusmail contact name' => 'Nombre',
 'statusmail email' => 'Dirección de correo electrónico',
 'statusmail key' => 'Clave de encriptación',
 'statusmail action' => 'Acción',
@@ -88,5 +89,7 @@
 'statusmail max free percent' => 'Porcentaje libre máximo',
 'statusmail disk access' => 'Acceso a disco',
 'statusmail disk temperature' => 'Temperatura del disco',
-'statusmail blocklist update' => 'Actualizaciones'
+'statusmail blocklist update' => 'Actualizaciones',
+'statusmail events' => 'Eventos',
+'statusmail event' => 'Evento'
 );

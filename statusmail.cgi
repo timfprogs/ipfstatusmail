@@ -17,15 +17,18 @@
 # You should have received a copy of the GNU General Public License           #
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
 #                                                                             #
+# Copyright (C) 2019                                                          #
+#                                                                             #
 ###############################################################################
 
-#enable only the following on debugging purpose
+# Enable the following only for debugging
 use strict;
 use warnings;
 use CGI qw/:standard/;
 use CGI::Carp 'fatalsToBrowser';
 
 use IPC::Open3;
+use Data::Dumper;
 
 require '/var/ipfire/general-functions.pl';
 require "${General::swroot}/lang.pl";
@@ -51,21 +54,20 @@ sub show_schedules();
 sub show_signing_key();
 sub check_key( $ );
 sub get_keys();
-sub save_settings( $$ );
-sub read_settings( $$ );
 sub check_schedule( % );
 sub toggle_on_off( $ );
+sub export_signing_key();
 
 ###############################################################################
 # Configuration variables
 ###############################################################################
 
-my $contacts             = "${General::swroot}/statusmail/contacts";
-my $schedules            = "${General::swroot}/statusmail/schedules";
-my $generate_signature   = "${General::swroot}/statusmail/generate_signature.sh";
+my $contactsettings      = "${General::swroot}/statusmail/contact_settings";
+my $schedulesettings     = "${General::swroot}/statusmail/schedule_settings";
+my $generate_signature   = "/usr/lib/statusmail/generate_signature.sh";
 my $mailsettings         = "${General::swroot}/dma/mail.conf";
 my $mainsettings         = "${General::swroot}/main/settings";
-my $plugin_dir           = "${General::swroot}/statusmail/plugins";
+my $plugin_dir           = '/usr/lib/statusmail/plugins';
 my $gpg                  = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
 my $execute              = '/usr/local/bin/statusmail.pl';
 my $tmpdir               = '/var/tmp';
@@ -78,52 +80,74 @@ my %mainsettings         = ();
 my %cgiparams            = ();
 my $errormessage         = '';
 my $current_contact      = '';
-my $current_key  = '';
+my $current_key          = '';
 my $current_schedule     = '';
 my $save_contacts        = 0;
 my $save_schedules       = 0;
 my %items;
-my %color;
-my %contacts;
-my %schedules;
+my %colour;
+my $contacts;
+my $schedules;
 my %keys;
 my %mailsettings;
 my $sign_key;
+my $signing_fingerprint  = '';
+my $signing_keyid        = '';
+my $encryption_key       = '';
+my $show_signing_key     = 0;
+my $show_encryption_keys = 0;
+my $show_contacts        = 0;
 my @debug;
 
 ###############################################################################
-# Read all parameters for site
+# Main code
 ###############################################################################
 
-Header::getcgihash(\%cgiparams);
-General::readhash($mainsettings, \%mainsettings);
-General::readhash($mailsettings, \%mailsettings) if (-e $mailsettings);
-General::readhash("/srv/web/ipfire/html/themes/".$mainsettings{'THEME'}."/include/colors.txt", \%color);
+# Read CGI parameters
+my $a = new CGI;
 
-if (-r $contacts)
+Header::getcgihash( \%cgiparams );
+
+# Read settings
+
+General::readhash( $mainsettings, \%mainsettings );
+General::readhash( $mailsettings, \%mailsettings ) if (-e $mailsettings);
+General::readhash( "/srv/web/ipfire/html/themes/" . $mainsettings{'THEME'} . "/include/colors.txt", \%colour );
+
+if (-r $contactsettings)
 {
-  read_settings( $contacts, \%contacts );
+  eval qx|/bin/cat $contactsettings|;
 }
 else
 {
   # No settings file - set up defaults
 
-  %contacts = ();
+  $contacts = {};
 }
 
-
-if (-r $schedules)
+if (-r $schedulesettings)
 {
-  read_settings( $schedules, \%schedules );
+  eval qx|/bin/cat $schedulesettings|;
 }
 else
 {
   # No settings file - set up defaults
 
-  %schedules = ();
+  $schedules = {};
 }
+
+# Get key information
 
 get_keys();
+
+# Get the email signing key
+
+$sign_key = `$gpg --armour --export IPFire`;
+
+$sign_key =~ s/^\s+//;
+$sign_key =~ s/\s+$//;
+
+$errormessage .= "<p>$Lang::tr{'statusmail no signing key'}</p>" if ($sign_key =~ m/nothing exported/ or not $sign_key);
 
 # Scan for plugins
 
@@ -136,29 +160,38 @@ foreach my $file (readdir DIR)
   require "$plugin_dir/$file";
 }
 
-# Get the email signing key
-
-$sign_key = `$gpg --armour --export IPFire`;
-
-$sign_key =~ s/^\s+//;
-$sign_key =~ s/\s+$//;
-
-$errormessage .= "<p>$Lang::tr{'statusmail no signing key'}</p>" if ($sign_key =~ m/nothing exported/ or not $sign_key);
-
-###############################################################################
-# Start of HTTP/HTML output
-###############################################################################
-
-# Show Headers
-Header::showhttpheaders();
-
 ###############################################################################
 # ACTIONS
 ###############################################################################
 
 # ACTIONS for Installed PGP Keys
 
+$show_signing_key     = $cgiparams{'show signing key'}     || 0;
+$show_encryption_keys = $cgiparams{'show encryption keys'} || 0;
+$show_contacts        = $cgiparams{'show contacts'}        || 0;
+
+$show_signing_key     = 1 if (exists $cgiparams{'SIGN_ACTION'});
+$show_encryption_keys = 1 if (exists $cgiparams{'KEY_ACTION'});
+$show_contacts        = 1 if (exists $cgiparams{'CONTACT_ACTION'});
+
 if ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail import'})
+{
+  my $upload = $a->param("UPLOAD");
+  $encryption_key = '';
+
+  binmode $upload;
+
+  foreach my $line ( <$upload> )
+  {
+    $encryption_key .= $line;
+  }
+
+  check_key( $encryption_key );
+  get_keys();
+
+  $show_contacts = 1;
+}
+elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'add'})
 {
   check_key( $cgiparams{'key'} );
 
@@ -179,12 +212,32 @@ elsif ($cgiparams{'KEY_ACTION'} eq 'remove key')
 
   get_keys();
 }
+elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail show'})
+{
+  $show_encryption_keys = 1;
+}
+elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail hide'})
+{
+  $show_encryption_keys = 0;
+}
 
 # ACTIONS for Signing Certificate
 
-elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail generate'})
+elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail generate'})
 {
   system( "$generate_signature &>$tmpdir/statusmail_log &" );
+}
+elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'export'})
+{
+  export_signing_key();
+}
+elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail show'})
+{
+  $show_signing_key = 1;
+}
+elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail hide'})
+{
+  $show_signing_key = 0;
 }
 
 # ACTIONS for Contacts
@@ -203,12 +256,12 @@ elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'CONTACT_A
 
   if (not $errormessage)
   {
-    my $enable = $contacts{$cgiparams{'name'}}{'enable'};
+    my $enable = $$contacts{$cgiparams{'name'}}{'enable'};
 
-    $contacts{$cgiparams{'name'}} = { 'email'       => $cgiparams{'address'},
-                                      'keyid'       => '',
-                                      'fingerprint' => '',
-                                      'enable'      => $enable };
+    $$contacts{$cgiparams{'name'}} = { 'email'       => $cgiparams{'address'},
+                                       'keyid'       => '',
+                                       'fingerprint' => '',
+                                       'enable'      => $enable };
     $save_contacts = 1;
   }
 }
@@ -220,15 +273,23 @@ elsif ($cgiparams{'CONTACT_ACTION'} eq 'remove contact')
 {
   my $key = $cgiparams{'KEY'};
 
-  delete $contacts{$key};
+  delete $$contacts{$key};
   $save_contacts = 1;
 }
 elsif ($cgiparams{'CONTACT_ACTION'} eq 'toggle contact')
 {
   my $key = $cgiparams{'KEY'};
 
-  toggle_on_off( $contacts{$key}{'enable'} );
+  toggle_on_off( $$contacts{$key}{'enable'} );
   $save_contacts = 1;
+}
+elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail show'})
+{
+  $show_contacts = 1;
+}
+elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail hide'})
+{
+  $show_contacts = 0;
 }
 
 # ACTIONS for Schedules
@@ -249,17 +310,24 @@ elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'remove schedule')
 {
   my $key = $cgiparams{'KEY'};
 
-  delete $schedules{$key};
+  delete $$schedules{$key};
   $save_schedules = 1;
 }
 elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'toggle schedule')
 {
   my $key = $cgiparams{'KEY'};
 
-  toggle_on_off( $schedules{$key}{'enable'} );
+  toggle_on_off( $$schedules{$key}{'enable'} );
 
   $save_schedules = 1;
 }
+
+###############################################################################
+# Start of HTTP/HTML output
+###############################################################################
+
+# Show Headers
+Header::showhttpheaders();
 
 ###############################################################################
 # Page contents
@@ -267,7 +335,7 @@ elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'toggle schedule')
 
 Header::openpage($Lang::tr{'statusmail status emails'}, 1, '');
 
-# Display error of email is not enabled
+# Display error if email is not enabled
 
 if ($mailsettings{'USEMAIL'} ne 'on')
 {
@@ -289,7 +357,7 @@ chomp($return);
 
 if ($return)
 {
-  Header::openbox( 'Working', 1, "<meta http-equiv='refresh' content='3;'>$Lang::tr{'statusmail working'}" );
+  Header::openbox( 'Working', 1, "<meta http-equiv='refresh' content='5;'>$Lang::tr{'statusmail working'}" );
 
   print <<END;
   <table width='100%'>
@@ -353,8 +421,19 @@ Header::closepage();
 
 # Save settings if necessary
 
-save_settings( $contacts,  \%contacts )  if ($save_contacts);
-save_settings( $schedules, \%schedules ) if ($save_schedules);
+if ($save_contacts)
+{
+  open OUT, '>', $contactsettings or die "Can't open contact settings file $contactsettings: $!";
+  print OUT Data::Dumper->Dump( [$contacts], ['contacts'] );
+  close OUT;
+}
+
+if ($save_schedules)
+{
+  open OUT, '>', $schedulesettings or die "Can't open schedule settings file $schedulesettings: $!";
+  print OUT Data::Dumper->Dump( [$schedules], ['schedules'] );
+  close OUT;
+}
 
 ###############################################################################
 # Subroutines
@@ -365,16 +444,60 @@ save_settings( $schedules, \%schedules ) if ($save_schedules);
 #
 # Outputs the 'Signing Key' section of the page.
 #
-# A new signing key can be generated.
+# A new signing key can be generated and exported.
 #------------------------------------------------------------------------------
 
 sub show_signing_key()
 {
-  # Email signing key
-
   Header::openbox('100%', 'left', $Lang::tr{'statusmail signing key'});
 
+  # Javascript to copy key to clipboard
+
   print <<END
+<script>
+  function copy_clipboard() {
+    /* Get the text field */
+    var copyText = document.getElementById( "key_out" );
+
+    /* Select the text field */
+    copyText.select();
+
+    /* Copy the text inside the text field */
+    document.execCommand( "copy" );
+
+    /* Alert the copied text */
+    alert( "$Lang::tr{'statusmail copied to clipboard'}" );
+  }
+</script>
+END
+;
+
+  # Hide/Show button
+
+  my $button = $show_signing_key ? $Lang::tr{"statusmail hide"} : $Lang::tr{"statusmail show"};
+
+  print <<END
+<form method='post' action='$ENV{'SCRIPT_NAME'}'>
+  <table width='100%'>
+    <tr>
+      <td align='right'>
+        <input type='submit' name='SIGN_ACTION' value='$button'>
+        <input type='hidden' name='show signing key' value='$show_signing_key'>
+        <input type='hidden' name='show encryption keys' value='$show_encryption_keys'>
+        <input type='hidden' name='show contacts' value='$show_contacts'>
+      </td>
+    </tr>
+  </table>
+</form>
+END
+;
+
+  # Key information and export/generate buttons
+
+  if ($show_signing_key)
+  {
+    print <<END
+<form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <table width='100%' cellspacing='1'>
   <tr>
     <td width='15%'>$Lang::tr{'statusmail signing key'}</td>
@@ -382,19 +505,30 @@ sub show_signing_key()
       <textarea name='sign key' rows='5' cols='90' readonly id='key_out'>$sign_key</textarea>
     </td>
   </tr>
-</table>
-<br><hr>
-<table width='100%'>
   <tr>
-  <form method='post' action='$ENV{'SCRIPT_NAME'}'>
-    <td align='right'>
-      <button onclick='copy_clipboard()'>$Lang::tr{'statusmail copy to clipboard'}</button>
-      <input type='submit' name='KEY_ACTION' value='$Lang::tr{"statusmail generate"}'></td>
-  </form>
+    <td width='15%'>$Lang::tr{'statusmail fingerprint'}</td>
+    <td>$signing_fingerprint</td>
+  </tr>
+  <tr>
+    <td width='15%'>$Lang::tr{'statusmail keyid'}</td>
+    <td>$signing_keyid</td>
   </tr>
 </table>
+<br><hr>
+<form method='post' action='$ENV{'SCRIPT_NAME'}'>
+<table width='100%'>
+  <tr>
+    <td align='right'>
+      <input type='submit' name='SIGN_ACTION' value='$Lang::tr{"export"}'>
+      <button onclick='copy_clipboard()'>$Lang::tr{'statusmail copy to clipboard'}</button>
+      <input type='submit' name='SIGN_ACTION' value='$Lang::tr{"statusmail generate"}'>
+    </td>
+  </tr>
+</table>
+</form>
 END
 ;
+  }
 
   Header::closebox();
 }
@@ -411,35 +545,39 @@ sub show_encryption_keys()
 {
   Header::openbox('100%', 'left', $Lang::tr{'statusmail keys'});
 
+  # Hide/show button
+
+  my $button = $show_encryption_keys ? $Lang::tr{"statusmail hide"} : $Lang::tr{"statusmail show"};
+
   print <<END
-  <script>
-    function copy_clipboard() {
-      /* Get the text field */
-      var copyText = document.getElementById( "cert_out" );
-
-      /* Select the text field */
-      copyText.select();
-
-      /* Copy the text inside the text field */
-      document.execCommand( "copy" );
-
-      /* Alert the copied text */
-      alert( "$Lang::tr{'statusmail copied to clipboard'}" );
-    }
-  </script>
+<form method='post' action='$ENV{'SCRIPT_NAME'}'>
+  <table width='100%'>
+    <tr>
+      <td align='right'>
+        <input type='submit' name='KEY_ACTION' value='$button'>
+        <input type='hidden' name='show signing key' value='$show_signing_key'>
+        <input type='hidden' name='show encryption keys' value='$show_encryption_keys'>
+        <input type='hidden' name='show contacts' value='$show_contacts'>
+      </td>
+    </tr>
+  </table>
+</form>
 END
 ;
 
-  # Install PGP keys
+  if ($show_encryption_keys)
+  {
+    # Selected key details and Import/Add buttons
 
-  print <<END
-  <form method='post' action='$ENV{'SCRIPT_NAME'}'>
+    print <<END
+  <form method='post' enctype='multipart/form-data' action='$ENV{'SCRIPT_NAME'}'>
     <table width='100%' cellspacing='1'>
       <tr>
         <td width='15%'>$Lang::tr{'statusmail key'}</td>
         <td>
-          <textarea name='key' rows='5' cols='90' id='cert_in' contenteditable="true">
-          </textarea>
+            <textarea name='key' rows='5' cols='90' id='cert_in' contenteditable="true">
+$encryption_key
+            </textarea>
         </td>
       </tr>
     </table>
@@ -447,15 +585,19 @@ END
     <table width='100%'>
       <tr>
         <td align='right'>
-          <input type='submit' name='KEY_ACTION' value='$Lang::tr{"statusmail import"}' />
+            <input type="file" size='50' name="UPLOAD" />
+            <input type='hidden' name='ACTION' value='restore' />
+            <input type='hidden' name='FILE' />
+            <input type='submit' name='KEY_ACTION' value='$Lang::tr{'import'}' />
+            <input type='submit' name='KEY_ACTION' value='$Lang::tr{"add"}' />
         </td>
       </tr>
     </table>
-    <hr>
   </form>
+  <hr>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='20%'>$Lang::tr{'statusmail name'}</th>
+    <th width='20%'>$Lang::tr{'statusmail contact name'}</th>
     <th width='20%'>$Lang::tr{'statusmail email'}</th>
     <th width='15%'>$Lang::tr{'statusmail keyid'}</th>
     <th width='25%'>$Lang::tr{'statusmail fingerprint'}</th>
@@ -467,23 +609,23 @@ END
 
   # List installed keys
 
-  my $row = 0;
-  foreach my $fingerprint (sort keys %keys)
-  {
-    my $show_fingerprint = $fingerprint;
-    $show_fingerprint =~ s/((?:\w{4}\s){4}(?:\w{4}))\s(.+)/$1<br>$2/;
-
-    if ($row % 2)
+    my $row = 0;
+    foreach my $fingerprint (sort keys %keys)
     {
-      print "<tr bgcolor='$color{'color20'}'>";
-    }
-    else
-    {
-      print "<tr bgcolor='$color{'color22'}'>";
-    }
+      my $show_fingerprint = $fingerprint;
+      $show_fingerprint =~ s/((?:\w{4}\s){4}(?:\w{4}))\s(.+)/$1<br>$2/;
 
-    my $name  = $keys{$fingerprint}{'userid'};
-    my $email = $keys{$fingerprint}{'email'};
+      if ($row % 2)
+      {
+        print "<tr bgcolor='$colour{'color20'}'>";
+      }
+      else
+      {
+        print "<tr bgcolor='$colour{'color22'}'>";
+      }
+
+      my $name  = $keys{$fingerprint}{'userid'};
+      my $email = $keys{$fingerprint}{'email'};
 
     print <<END
   <td align='center'>$name</td>
@@ -508,7 +650,7 @@ END
 </table>
 END
 ;
-
+  }
   Header::closebox();
 }
 
@@ -530,24 +672,46 @@ sub show_contacts()
 
   Header::openbox('100%', 'left', $Lang::tr{'statusmail contacts'});
 
-  if ($current_contact)
-  {
-    $button          = $Lang::tr{'update'};
+  # Hide/Show button
 
-    if (exists $contacts{$current_contact})
-    {
-      $current_address = $contacts{$current_contact}{'email'};
-      $keyid           = $contacts{$current_contact}{'keyid'};
-    }
-  }
-
-  # Edit contact
+  my $button = $show_contacts ? $Lang::tr{"statusmail hide"} : $Lang::tr{"statusmail show"};
 
   print <<END
+<form method='post' action='$ENV{'SCRIPT_NAME'}'>
+  <table width='100%'>
+    <tr>
+      <td align='right'>
+        <input type='submit' name='CONTACT_ACTION' value='$button'>
+        <input type='hidden' name='show signing key' value='$show_signing_key'>
+        <input type='hidden' name='show encryption keys' value='$show_encryption_keys'>
+        <input type='hidden' name='show contacts' value='$show_contacts'>
+      </td>
+    </tr>
+  </table>
+</form>
+END
+;
+
+  if ($show_contacts)
+  {
+    # Selected contact details and Import/Add buttons
+
+    if ($current_contact)
+    {
+      $button          = $Lang::tr{'update'};
+
+      if (exists $$contacts{$current_contact})
+      {
+        $current_address = $$contacts{$current_contact}{'email'};
+        $keyid           = $$contacts{$current_contact}{'keyid'};
+      }
+    }
+
+    print <<END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
     <table width='100%' cellspacing='1'>
       <tr>
-        <td width='15%'>$Lang::tr{'statusmail name'}</td>
+        <td width='15%'>$Lang::tr{'statusmail contact name'}</td>
         <td>
           <input type='text' name='name' value='$current_address'>
         </td>
@@ -563,14 +727,14 @@ sub show_contacts()
 END
 ;
 
-  foreach my $key (sort keys %keys)
-  {
-    my $select = '';
-    $select = ' selected' if ($keys{$key}{keyid} eq $keyid);
-    print "<option value='$keys{$key}{keyid}'$select>$keys{$key}{keyid}</option>\n";
-  }
+    foreach my $key (sort keys %keys)
+    {
+      my $select = '';
+      $select = ' selected' if ($keys{$key}{keyid} eq $keyid);
+      print "<option value='$keys{$key}{keyid}'$select>$keys{$key}{keyid}</option>\n";
+    }
 
-  print <<END
+    print <<END
           </select>
         </td>
       </tr>
@@ -585,7 +749,7 @@ END
   <hr>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='25%'>$Lang::tr{'statusmail name'}</th>
+    <th width='25%'>$Lang::tr{'statusmail contact name'}</th>
     <th width='40%'>$Lang::tr{'statusmail email'}</th>
     <th width='25%'>$Lang::tr{'statusmail key'}</th>
     <th colspan='3'>$Lang::tr{'statusmail action'}</th>
@@ -593,43 +757,43 @@ END
 END
 ;
 
-  # List contacts
+    # List contacts
 
-  my $row = 0;
-  foreach my $contact (sort keys %contacts)
-  {
-    my $col = '';
-    my $gif;
-    my $gdesc;
+    my $row = 0;
+    foreach my $contact (sort keys %$contacts)
+    {
+      my $col = '';
+      my $gif;
+      my $gdesc;
 
-    if ($current_contact eq $contact)
-    {
-      print "<tr bgcolor='${Header::colouryellow}'>";
-    }
-    elsif ($row % 2)
-    {
-      print "<tr bgcolor='$color{'color20'}'>";
-    }
-    else
-    {
-      print "<tr bgcolor='$color{'color22'}'>";
-    }
+      if ($current_contact eq $contact)
+      {
+        print "<tr bgcolor='${Header::colouryellow}'>";
+      }
+      elsif ($row % 2)
+      {
+        print "<tr bgcolor='$colour{'color20'}'>";
+      }
+      else
+      {
+        print "<tr bgcolor='$colour{'color22'}'>";
+      }
 
-    if ($contacts{$contact}{'enable'} eq 'on')
-    {
-      $gif = 'on.gif';
-      $gdesc = $Lang::tr{'click to disable'};
-    }
-    else
-    {
-      $gif = 'off.gif';
-      $gdesc = $Lang::tr{'click to enable'};
-    }
+      if ($$contacts{$contact}{'enable'} eq 'on')
+      {
+        $gif = 'on.gif';
+        $gdesc = $Lang::tr{'click to disable'};
+      }
+      else
+      {
+        $gif = 'off.gif';
+        $gdesc = $Lang::tr{'click to enable'};
+      }
 
-    print <<END
+      print <<END
   <td align='center'>$contact</td>
-  <td align='center'>$contacts{$contact}{'email'}</td>
-  <td align='center'>$contacts{$contact}{'keyid'}</td>
+  <td align='center'>$$contacts{$contact}{'email'}</td>
+  <td align='center'>$$contacts{$contact}{'keyid'}</td>
 
   <td align='center'>
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
@@ -657,13 +821,15 @@ END
   </tr>
 END
 ;
-    $row++;
-  }
+      $row++;
+    }
 
-  print <<END
+    print <<END
 </table>
 END
 ;
+  }
+
   Header::closebox();
 }
 
@@ -690,39 +856,39 @@ sub show_schedules()
 
   if ($current_schedule)
   {
-    $button          = $Lang::tr{'update'};
+    $button = $Lang::tr{'update'};
 
-    foreach my $field ( keys %{ $schedules{$current_schedule} } )
+    foreach my $field ( keys %{ $$schedules{$current_schedule} } )
     {
-      $schedule{$field} = $schedules{$current_schedule}{$field};
+      $schedule{$field} = $$schedules{$current_schedule}{$field};
     }
   }
 
-  # Edit schedules
+  # Selected schedule - email information
 
   print <<END
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>
-    <table width='100%' cellspacing='1'>
-      <tr>
-        <td width='15%'>$Lang::tr{'statusmail name'}</td>
-        <td colspan='3'>
-          <input type='text' name='name' value='$current_schedule' size='80'>
-        </td>
-      </tr>
-      <tr>
-        <td>$Lang::tr{'statusmail email subject'}</td>
-        <td colspan='3'>
-          <input type='text' name='subject' value='$schedule{'subject'}' size='80'>
-        </td>
-      </tr>
-      <tr>
-        <td>$Lang::tr{'statusmail email to'}</td>
-        <td>
+  <table width='100%' cellspacing='1'>
+    <tr>
+      <td width='15%'>$Lang::tr{'statusmail schedule name'}</td>
+      <td colspan='3'>
+        <input type='text' name='name' value='$current_schedule' size='80'>
+      </td>
+    </tr>
+    <tr>
+      <td>$Lang::tr{'statusmail email subject'}</td>
+      <td colspan='3'>
+        <input type='text' name='subject' value='$schedule{'subject'}' size='80'>
+      </td>
+    </tr>
+    <tr>
+      <td>$Lang::tr{'statusmail email to'}</td>
+      <td>
           <select name='emails' size='3' multiple>
 END
 ;
 
-  foreach my $contact (sort keys %contacts)
+  foreach my $contact (sort keys %$contacts)
   {
     my $select = '';
     $select    = ' selected' if ($schedule{'email'} =~ m/$contact/);
@@ -774,6 +940,8 @@ END
       <tr>
 END
 ;
+
+  # Selected schedule - frequency information
 
   foreach my $day (1..31)
   {
@@ -833,6 +1001,8 @@ END
     my $checked = ($schedule{'hours'} & (1 << $hour)) ? ' checked' : '';
     print "<td align='center'><input type='checkbox' name='hour_$hour'$checked></td>\n";
   }
+
+  # Javascript to show/hide HTML only items
 
   print <<END
       </tr>
@@ -952,6 +1122,8 @@ END
     }
   }
 
+  # Add/Update button
+
   print <<END
   </table>
     <hr>
@@ -964,7 +1136,7 @@ END
   <hr>
   <table width='100%' class='tbl'>
   <tr>
-    <th width='90%'>$Lang::tr{'statusmail name'}</th>
+    <th width='90%'>$Lang::tr{'statusmail schedule name'}</th>
     <th colspan='4'>$Lang::tr{'statusmail action'}</th>
   </tr>
 END
@@ -973,7 +1145,7 @@ END
   # List schedules
 
   my $row = 0;
-  foreach my $schedule (sort keys %schedules)
+  foreach my $schedule (sort keys %$schedules)
   {
     my $col = '';
     my $gif;
@@ -985,14 +1157,14 @@ END
     }
     elsif ($row % 2)
     {
-      print "<tr bgcolor='$color{'color20'}'>";
+      print "<tr bgcolor='$colour{'color20'}'>";
     }
     else
     {
-      print "<tr bgcolor='$color{'color22'}'>";
+      print "<tr bgcolor='$colour{'color22'}'>";
     }
 
-    if ($schedules{$schedule}{'enable'} eq 'on')
+    if ($$schedules{$schedule}{'enable'} eq 'on')
     {
       $gif = 'on.gif';
       $gdesc = $Lang::tr{'click to disable'};
@@ -1062,8 +1234,10 @@ sub check_key( $ )
 {
   my ($key) = @_;
 
-  $key =~ s/^\s+//;
-  $key =~ s/\s+$//;
+  # Remove leading and trailing whitespace
+
+  $key =~ s/^\s+//g;
+  $key =~ s/\s+$//g;
 
   # Check it looks like a key
 
@@ -1115,6 +1289,8 @@ sub get_keys()
   my $fingerprint = '';
   my $use         = '';
 
+  # Iterate through the list of keys
+
   foreach my $line (@keys)
   {
     my @fields = split /:/, $line;
@@ -1134,7 +1310,7 @@ sub get_keys()
     #           11      12    13      14              15     16          17       18      19
     # capabilities, issuer, flag, serial, hash algorithm, curve, compliance, updated, origin
 
-    if (($fields[0] eq 'pub' or $fields[0] eq 'sub')) # and $fields[1] =~ m/e/)
+    if (($fields[0] eq 'pub' or $fields[0] eq 'sub'))
     {
       # Key that can be used for encryption
 
@@ -1154,11 +1330,13 @@ sub get_keys()
       # Fingerprint
 
       $fingerprint = $fields[9];
-      $fingerprint =~ s/\w{4}\K(?=.)/ /sg;
+      $fingerprint =~ s/\w{4}\K(?=.)/ /sg; # Adds a space after every fourth character
     }
 
     if ($keyid and $userid and $expires and $fingerprint and $use =~ m/e/)
     {
+      # We've got all the information for one key
+
       if ($userid =~ m/\@/)
       {
         ($userid, $email) = $userid =~ m/^(.*?)\s+\<(.*)\>/;
@@ -1170,20 +1348,24 @@ sub get_keys()
                               'expires'     => $expires,
                               'fingerprint' => $fingerprint };
 
-      if (exists $contacts{$userid} and ($contacts{$userid}{'email'} eq $email or not $contacts{$userid}{'email'}))
+      if (exists $$contacts{$userid} and ($$contacts{$userid}{'email'} eq $email or not $$contacts{$userid}{'email'}))
       {
-        $contacts{$userid}{'email'}       = $email;
-        $contacts{$userid}{'keyid'}       = $keyid;
-        $contacts{$userid}{'fingerprint'} = $fingerprint;
+        # Update existing contact
+
+        $$contacts{$userid}{'email'}       = $email;
+        $$contacts{$userid}{'keyid'}       = $keyid;
+        $$contacts{$userid}{'fingerprint'} = $fingerprint;
 
         $save_contacts = 1;
       }
-      elsif (not exists $contacts{$userid})
+      elsif (not exists $$contacts{$userid})
       {
-        $contacts{$userid}{'email'}       = $email;
-        $contacts{$userid}{'keyid'}       = $keyid;
-        $contacts{$userid}{'fingerprint'} = $fingerprint;
-        $contacts{$userid}{'enable'}      = 0;
+        # New contact
+
+        $$contacts{$userid}{'email'}       = $email;
+        $$contacts{$userid}{'keyid'}       = $keyid;
+        $$contacts{$userid}{'fingerprint'} = $fingerprint;
+        $$contacts{$userid}{'enable'}      = 0;
 
         $save_contacts = 1;
       }
@@ -1191,14 +1373,26 @@ sub get_keys()
       $fingerprint   = '';
       $keyid         = '';
     }
+    elsif ($keyid and $userid =~ m/IPFire/ and $fingerprint and $use =~ m/s/)
+    {
+      # The signing key
+
+      $signing_fingerprint = $fingerprint;
+      $signing_keyid       = $keyid;
+
+      $fingerprint   = '';
+      $keyid         = '';
+    }
   }
 
-  foreach my $contact (keys %contacts)
+  # Check for contacts which no longer have a key defined
+
+  foreach my $contact (keys %$contacts)
   {
-    if ($contacts{$contact}{'fingerprint'} and not exists $keys{$contacts{$contact}{'fingerprint'}})
+    if ($$contacts{$contact}{'fingerprint'} and not exists $keys{$$contacts{$contact}{'fingerprint'}})
     {
-      $contacts{$contact}{'fingerprint'} = '';
-      $contacts{$contact}{'keyid'}       = '';
+      $$contacts{$contact}{'fingerprint'} = '';
+      $$contacts{$contact}{'keyid'}       = '';
 
       $save_contacts = 1;
     }
@@ -1219,13 +1413,17 @@ sub check_schedule( % )
   my $mdays  = 0;
   my $wdays  = 0;
   my $hours  = 0;
-  my $enable = $schedules{$params{'name'}}{'enable'};
+  my $enable = $$schedules{$params{'name'}}{'enable'};
+
+  # Check required fields are set
 
   $errormessage .= "<p>$Lang::tr{'statusmail no schedule name'}</p>"   if (not $params{'name'});
   $errormessage .= "<p>$Lang::tr{'statusmail no email subject'}</p>"   if (not $params{'subject'});
   $errormessage .= "<p>$Lang::tr{'statusmail no email addresses'}</p>" if (not $params{'emails'});
   $errormessage .= "<p>$Lang::tr{'statusmail no period covered'}</p>"  if (not $params{'period-value'});
   $errormessage .= "<p>$Lang::tr{'statusmail no lines per item'}</p>"  if (not $params{'lines'});
+
+  # Convert time/date buttons to bitmap
 
   foreach my $mday (1..31)
   {
@@ -1242,6 +1440,8 @@ sub check_schedule( % )
     $hours |= 1 << $hour if (exists $params{"hour_$hour"});
   }
 
+  # Check schedule is OK
+
   $errormessage .= "<p>$Lang::tr{'statusmail no schedule date'}" if (not ($mdays+$wdays));
   $errormessage .= "<p>$Lang::tr{'statusmail no schedule time'}" if (not $hours);
   $errormessage .= "<p>$Lang::tr{'statusmail excessive period'}" if (($params{'period-unit'} eq 'hours'  and $params{'period-value'} > (365 * 24)) or
@@ -1249,16 +1449,18 @@ sub check_schedule( % )
                                                                      ($params{'period-unit'} eq 'weeks'  and $params{'period-value'} > 52)         or
                                                                      ($params{'period-unit'} eq 'months' and $params{'period-value'} > 12));
 
-  $schedules{$params{'name'}} = { 'subject'      => $params{'subject'},
-                                  'email'        => $params{'emails'},
-                                  'format'       => $params{'format'},
-                                  'period-value' => $params{'period-value'},
-                                  'period-unit'  => $params{'period-unit'},
-                                  'lines'        => $params{'lines'},
-                                  'mday'         => $mdays,
-                                  'wday'         => $wdays,
-                                  'hours'        => $hours,
-                                  'enable'       => $enable };
+  $$schedules{$params{'name'}} = { 'subject'      => $params{'subject'},
+                                   'email'        => $params{'emails'},
+                                   'format'       => $params{'format'},
+                                   'period-value' => $params{'period-value'},
+                                   'period-unit'  => $params{'period-unit'},
+                                   'lines'        => $params{'lines'},
+                                   'mday'         => $mdays,
+                                   'wday'         => $wdays,
+                                   'hours'        => $hours,
+                                   'enable'       => $enable };
+
+  # Check individual items
 
   foreach my $section (sort keys %items)
   {
@@ -1272,19 +1474,19 @@ sub check_schedule( % )
         if (($format eq 'html' and $params{'format'} eq 'text') or
             ($format eq 'text' and $params{'format'} eq 'html'))
         {
-          $schedules{$params{'name'}}{"enable_${name}"} = 'off';
+          $$schedules{$params{'name'}}{"enable_${name}"} = 'off';
         }
         else
         {
           my $state = 'off';
 
           $state = 'on' if (exists($params{"enable_${name}"}));
-          $schedules{$params{'name'}}{"enable_${name}"} = $state;
+          $$schedules{$params{'name'}}{"enable_${name}"} = $state;
         }
 
         if ($items{$section}{$subsection}{$item}{'option'})
         {
-          $schedules{$params{'name'}}{"value_${name}"} = $params{"value_${name}"};
+          $$schedules{$params{'name'}}{"value_${name}"} = $params{"value_${name}"};
         }
       }
     }
@@ -1295,71 +1497,13 @@ sub check_schedule( % )
 
 
 #------------------------------------------------------------------------------
-# sub save_settings( file, hash )
+# sub add_mail_item( params )
 #
-# Writes the hash to the named file.  Handles a hash of hashes.
-#------------------------------------------------------------------------------
-
-sub save_settings( $$ )
-{
-  my ($file, $hash) = @_;
-
-  open OUT, '>', $file or die "Can't open $file for output: $!";
-
-  foreach my $item (sort keys %{ $hash })
-  {
-    print OUT "[$item]\n";
-
-    foreach my $field (sort keys %{ $$hash{$item} })
-    {
-      print OUT "$field=$$hash{$item}{$field}\n";
-    }
-  }
-
-  close OUT;
-}
-
-
-#------------------------------------------------------------------------------
-# sub read_settings( file, hash )
+# Adds a possible status item to the section and subsection specified.   This
+# is called by plugins during the BEGIN phase.
 #
-# Reads the hash from the named file.  Handles a hash of hashes.
-#------------------------------------------------------------------------------
-
-sub read_settings( $$ )
-{
-  my ($file, $hash) = @_;
-
-  my $item= '';
-
-  open IN, '<', $file or die "Can't open $file for input: $!";
-
-  foreach my $line (<IN>)
-  {
-    chomp $line;
-
-    next unless ($line);
-
-    if ($line =~ m/^\[(.*)\]$/)
-    {
-      $item = $1;
-    }
-    else
-    {
-      my ($field, $value) = split /\s*=\s*/, $line, 2;
-
-      $$hash{$item}{$field} = $value;
-    }
-  }
-
-  close IN;
-}
-
-
-#------------------------------------------------------------------------------
-# sub addsub add( params )
-#
-# Adds a possible status item to the section and subsection specified.
+# In the event of an error in specifying the parameters the item will be
+# ignored with no error being raised.
 #
 # Parameters:
 #   params  hash containing details of the item to be added:
@@ -1387,6 +1531,7 @@ sub add_mail_item( %)
 {
   my %params = @_;
 
+  # Check we've got all the expected parameters
 
   return unless (exists $params{'section'}    and
                  exists $params{'subsection'} and
@@ -1408,6 +1553,8 @@ sub add_mail_item( %)
 
   $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'format' => $params{'format'},
                                                                          'ident'  => $params{'ident'} };
+
+  # Check the option parameter, if it exists
 
   if ($params{'option'})
   {
@@ -1448,7 +1595,30 @@ sub toggle_on_off( $ )
 
 
 #------------------------------------------------------------------------------
+# sub export_signing_key()
+#
+# Exports the signing key to a file on the WUI client computer
+#------------------------------------------------------------------------------
+
+sub export_signing_key()
+{
+  # Print headers
+	print "Content-Disposition: attachment; filename=$mainsettings{HOSTNAME}.asc\n";
+	print "Content-Type: application/octet-stream\n";
+	print "Content-Length: " . length( $sign_key ) . "\n";
+	print "\n";
+
+	# Deliver content
+	print $sign_key;
+
+	exit( 0 );
+}
+
+
+#------------------------------------------------------------------------------
 # These functions are referenced by plugins but will not actually be called.
+#
+# The script to send mail messages makes use of theses functions.
 #------------------------------------------------------------------------------
 
 

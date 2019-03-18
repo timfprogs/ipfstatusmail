@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -64,7 +64,13 @@ sub get_log( $ );
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets relevant information from the system log and caches it.
 #
+# Parameters:
+#   this  message object
+#
+# Returns:
+#   reference to hash of wanted information
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
@@ -101,6 +107,14 @@ sub get_log( $ )
 }
 
 #------------------------------------------------------------------------------
+# sub alerts( this, min_count )
+#
+# Outputs information on detected viruses etc.
+#
+# Parameters:
+#   this       message object
+#   min_count  only output information if it occurs at least this many times.
+#------------------------------------------------------------------------------
 
 sub alerts( $$ )
 {
@@ -121,23 +135,39 @@ sub alerts( $$ )
   if (@table > 1)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 #------------------------------------------------------------------------------
+# sub updates( this )
+#
+# Output information on ClamAV rule updates.
+#
+# Parameters:
+#   this       message object
+#------------------------------------------------------------------------------
 
-sub updates( $$ )
+
+sub updates( $ )
 {
-  my ($self, $min_count) = @_;
+  my ($self) = @_;
   my @table;
 
   my $info = get_log( $self );
 
   if (exists $$info{rules})
   {
-    $self->add_text( "\n$Lang::tr{'installed updates'} $$info{updates}" );
-    $self->add_text( "\n$Lang::tr{'statusmail signatures'} $$info{rules}" );
+    $self->add_text( "$Lang::tr{'installed updates'} $$info{updates}\n" );
+    $self->add_text( "$Lang::tr{'statusmail signatures'} $$info{rules}\n" );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;

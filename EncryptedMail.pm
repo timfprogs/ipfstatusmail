@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -39,7 +39,9 @@ package EncryptedMail;
 # Configuration variables
 ############################################################################
 
-my $gpg = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
+my $gpg             = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
+my $contactsettings = "${General::swroot}/statusmail/contact_settings";
+
 
 ############################################################################
 # Function prototypes
@@ -70,13 +72,6 @@ sub get_max_lines_per_item( $ );
 #     to        reference to a list of contact names.
 #     subject   subject for email message
 #     sender    email address of sender
-#     contacts  reference to hash of contacts
-#
-# The contacts hash contains a hash for each contact, indexed on the contact
-# name.  Each contact must have an 'email' field containing the email address
-# and may have a 'fingerprint' field containing the fingerprint of the PGP key
-# used to encrypt the message for that contact.  If no fingerprint is given the
-# message to that contact will be signed but not encrypted.
 #------------------------------------------------------------------------------
 
 sub new( @ )
@@ -102,10 +97,10 @@ sub new( @ )
 
   bless( $self, $class );
 
-  # For an HTML message, put the head on the beginning.
-
   if ($self->{'format'} eq 'html')
   {
+    # For an HTML message, put the head on the beginning.
+
     $self->{'message'} = "<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n";
 
     if ($self->{'stylesheet'})
@@ -127,6 +122,8 @@ sub new( @ )
   }
   else
   {
+    # For a text message, just put the subject
+
     $self->{'message'} .= "$self->{subject}\n\n"
   }
 
@@ -159,6 +156,7 @@ sub new( @ )
 # sub is_html()
 #
 # Returns true if the message format is HTML.
+# Used by plugins.
 #------------------------------------------------------------------------------
 
 sub is_html( $ )
@@ -171,6 +169,7 @@ sub is_html( $ )
 # sub is_text()
 
 # Return true if the message format is text.
+# Used by plugins.
 #------------------------------------------------------------------------------
 
 sub is_text( $ )
@@ -182,7 +181,8 @@ sub is_text( $ )
 #------------------------------------------------------------------------------
 # sub get_max_lines_per_item()
 
-# Return true if the message format is text.
+# Returns the maximum number of lines to include in an item.
+# Used by plugins.
 #------------------------------------------------------------------------------
 
 sub get_max_lines_per_item( $ )
@@ -204,6 +204,7 @@ sub send( $@ )
 
   my $self = shift;
   my ($subject) = @_;
+  my $contacts;
 
   # Don't do anything if there's no data
 
@@ -213,22 +214,25 @@ sub send( $@ )
 
   # Get the list of recipients, dividing it into signed and encrypted.
 
+  return unless (-r $contactsettings);
+  eval qx|/bin/cat $contactsettings|;
+
   my @signed_recipients;
   my @encrypted_recipients;
 
   foreach my $recipient ( @{ $self->{'to'} } )
   {
-    if ($self->{'contacts'}{$recipient}{'fingerprint'})
+    if ($$contacts{$recipient}{'fingerprint'})
     {
       # Signed and encrypted
 
-      push @encrypted_recipients, $self->{'contacts'}{$recipient}{'email'};
+      push @encrypted_recipients, $$contacts{$recipient}{'email'};
     }
     else
     {
       # Signed only
 
-      push @signed_recipients, $self->{'contacts'}{$recipient}{'email'};
+      push @signed_recipients, $$contacts{$recipient}{'email'};
     }
   }
 
@@ -248,11 +252,15 @@ sub send( $@ )
 
   $self->{text}->data( $self->{message} );
 
+  #----------------------------------------------------------------------------
+  # Sign message
+  #----------------------------------------------------------------------------
+
   # Prepare to sign the data
 
   my ($from_gpg, $to_gpg);
 
-  my $body        = $self->{'object'}->as_string;
+  my $body = $self->{'object'}->as_string;
 
   # Sign the data
   # Create a process running GPG
@@ -264,6 +272,7 @@ sub send( $@ )
   print $to_gpg "ipfirestatusemail\n";
 
   # Pipe the data to be signed to GPG
+  # The signature is fairly short so we don't need to worry about buffering.
 
   foreach my $line (split /[\n]/, $body)
   {
@@ -283,7 +292,7 @@ sub send( $@ )
 
   $signature .= $_ while <$from_gpg>;
 
-  waitpid( $childpid, 0);
+  waitpid( $childpid, 0 );
 
   # Create the message that will contain the data and its signature
 
@@ -310,7 +319,7 @@ sub send( $@ )
   if (@signed_recipients)
   {
     $signed_message->add( From    => $self->{'sender'} );
-    $signed_message->add( To      => @signed_recipients );
+    $signed_message->add( To      => [ @signed_recipients ] );
     $signed_message->add( Subject => $self->{'subject'} );
 
     $signed_message->send();
@@ -322,6 +331,10 @@ sub send( $@ )
     $signed_message->delete( 'Subject' );
   }
 
+  #----------------------------------------------------------------------------
+  # Encrypt message
+  #----------------------------------------------------------------------------
+
   # Encrypt and send the message to signed and encrypted recipients
 
   if (@encrypted_recipients)
@@ -332,9 +345,9 @@ sub send( $@ )
 
     foreach my $recipient ( @{ $self->{'to'} } )
     {
-      if ($self->{'contacts'}{$recipient}{'fingerprint'})
+      if ($$contacts{$recipient}{'fingerprint'})
       {
-        my $fingerprint = $self->{'contacts'}{$recipient}{'fingerprint'};
+        my $fingerprint = $$contacts{$recipient}{'fingerprint'};
         $fingerprint =~ s/\s+//g;
 
         $cmd .= " --recipient $fingerprint";
@@ -348,6 +361,8 @@ sub send( $@ )
     my $encrypted = '';
 
     # Start GPG and pipe the signed message to it
+    # The encrypted message is longer than the IO buffer so we need to arrange
+    # to read and write asynchronously.
 
     $childpid = open2( $from_gpg, $to_gpg, $cmd ) or die "Can't fork GPG child: $!";
 
@@ -375,7 +390,7 @@ sub send( $@ )
     # Create the message that will contain the data and its signature
 
     my $encrypted_message = new MIME::Lite( From    => $self->{'sender'},
-                                            To      => @encrypted_recipients,
+                                            To      => [ @encrypted_recipients ],
                                             Subject => $self->{'subject'},
                                             Type    => 'multipart/mixed' );
 
@@ -413,13 +428,20 @@ sub add_section( $$ )
 
   if ($self->{format} eq 'html')
   {
+    # Terminate old items/subsections/sections
+
     $self->{message}    .= "</div>\n" if ($self->{in_item});
     $self->{message}    .= "</div>\n" if ($self->{in_subsection});
     $self->{message}    .= "</div>\n" if ($self->{in_section});
+
+    # Start new section
+
     $self->{section}     = "<div class='section'><h2>$name</h2>\n";
   }
   else
   {
+    # Start new section
+
     $self->{section}     = "\n$name\n";
     $self->{section}    .= '-' x length($name);
     $self->{section}    .= "\n";
@@ -448,12 +470,19 @@ sub add_subsection( $$ )
 
   if ($self->{format} eq 'html')
   {
+    # Terminate old items/subsections
+
     $self->{message}    .= "</div>\n" if ($self->{in_item});
     $self->{message}    .= "</div>\n" if ($self->{in_subsection});
+
+    # Start new subsection
+
     $self->{subsection}  = "<div class='subsection'><h3>$name</h3>\n";
   }
   else
   {
+    # Start new subsection
+
     $self->{subsection}  = "\n  $name\n";
   }
 
@@ -478,11 +507,18 @@ sub add_title( $$ )
 
   if ($self->{format} eq 'html')
   {
+    # Terminate old item
+
     $self->{message}    .= "</div>\n" if ($self->{in_item});
+
+    # Start new item
+
     $self->{item} = "<div class='item'><h4>$string</h4>\n";
   }
   else
   {
+    # Start new item
+
     $self->{item} = "\n    $string\n\n";
   }
 
@@ -496,13 +532,15 @@ sub add_title( $$ )
 # Adds an item (or part of an item) to the message. If there are section,
 # subsection or item titles outstanding, they are added, and then the contents
 # of the parameter array is added.  No formatting is carried out.  This
-# function should generally only be used by a plug in to add pre-formatted
+# function should generally only be used by a plugin to add pre-formatted
 # HTML to the message.
 #------------------------------------------------------------------------------
 
 sub add( $@ )
 {
   my ($self, @lines) = @_;
+
+  # Add section/subsection/item titles, if they haven't already been added.
 
   if ($self->{section})
   {
@@ -527,6 +565,8 @@ sub add( $@ )
     $self->{item}       = '';
     $self->{in_item}    = 1;
   }
+
+  # Add the lines
 
   foreach my $line (@lines)
   {
@@ -584,6 +624,8 @@ sub add_image( $@ )
 {
   my ($self, %params) = @_;
 
+  # Add section/subsection/item titles, if they haven't already been added.
+
   if ($self->{section})
   {
     $self->{message}      .= $self->{section};
@@ -608,6 +650,8 @@ sub add_image( $@ )
     $self->{in_item}    = 1;
   }
 
+  # Work out the name of the embedded file
+
   $self->{'image_file'}++;
 
   my $image_name = $self->{'image_file'};
@@ -629,6 +673,8 @@ sub add_image( $@ )
     return;
   }
 
+  # Get the image
+
   my $data;
 
   if (exists $params{fh})
@@ -646,10 +692,11 @@ sub add_image( $@ )
     $data = $params{data};
   }
 
+  # Embed the file
+
   my $name = $params{'name'} || $image_name;
 
   $self->{object}->attach( Type     => $params{'type'},
-#                           Filename => $name,
                            Data     => $data,
                            Id       => $image_name );
 
@@ -674,13 +721,14 @@ sub add_image( $@ )
 # The entire table is scanned to work out the size and alignment of each column
 # and then the table is formatted and added to the message.  Columns are right
 # aligned if they only contain numeric data (which may be suffixed to indicate
-# units), otherwise columns are left aligned.  The header row is centered.  The
-# alignment algorithm may be overridden by inserting a row consisting only of
-# entries containing the following characters: '<', '|', '#' and '>', for left
-# centre, numeric and right alignment.  This line will override the alignment
-# for subsequent columns.  This also works for the header row, by inserting
-# the alignment information before the header row; in this case the entire body
-# of the table must also be manually aligned.
+# units), otherwise columns are left aligned.  The header row is centered.
+#
+# The alignment algorithm may be overridden by inserting a row consisting only
+# of entries containing the following characters: '<', '|', '#' and '>', for
+# left centre, numeric and right alignment.  This line will override the
+# alignment for subsequent columns.  This also works for the header row, by
+# inserting the alignment information before the header row; in this case the
+# entire body of the table must also be manually aligned.
 #------------------------------------------------------------------------------
 
 sub add_table( $@ )
@@ -859,7 +907,6 @@ sub _add_table_text( $@ )
         $align[$column] = '>';
       }
     }
-
 
     # Check for manually defined alignment.
 

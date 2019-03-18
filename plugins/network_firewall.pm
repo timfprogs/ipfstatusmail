@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -93,7 +93,13 @@ sub addresses( $$ );
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets information on blocked packets from the system log and caches it.
 #
+# Parameters:
+#   this  message object
+#
+# Returns:
+#   reference to hash of information
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
@@ -114,7 +120,7 @@ sub get_log( $ )
 
     my ($time, $rule, $interface, $src_addrs, $dst_port) =
         $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
-# Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=146.185.222.28 DST=95.149.139.151 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
+# Sep  7 15:59:18 ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=999.999.999.999 DST=888.888.888.888 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
 
     next unless ($src_addrs);
 
@@ -150,6 +156,16 @@ sub get_log( $ )
   return \%info;
 }
 
+
+#------------------------------------------------------------------------------
+# sub addresses( this, min_count )
+#
+# Output information on blocked addresses.
+#
+# Parameters:
+#   this       message object
+#   min_count  only output blocked addresses occurring at least this number of
+#              times
 #------------------------------------------------------------------------------
 
 sub addresses( $$ )
@@ -196,9 +212,23 @@ sub addresses( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub ports( this, min_count )
+#
+# Output information on blocked ports.
+#
+# Parameters:
+#   this       message object
+#   min_count  only output blocked ports occurring at least this number of
+#              times
 #------------------------------------------------------------------------------
 
 sub ports( $$ )
@@ -227,9 +257,23 @@ sub ports( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub countries( this, min_count )
+#
+# Output information on blocked countries.
+#
+# Parameters:
+#   this       message object
+#   min_count  only output blocked countries occurring at least this number of
+#              times
 #------------------------------------------------------------------------------
 
 sub countries( $$ )
@@ -259,9 +303,23 @@ sub countries( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub reasons( this, min_count )
+#
+# Output information on blocked reasons (the IPtable blocking the packet).
+#
+# Parameters:
+#   this       message object
+#   min_count  only output blocked reasons occurring at least this number of
+#              times
 #------------------------------------------------------------------------------
 
 sub reasons( $$ )
@@ -289,7 +347,11 @@ sub reasons( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;

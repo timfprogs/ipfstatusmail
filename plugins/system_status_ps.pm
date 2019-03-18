@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -59,9 +59,13 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub processes
+# sub processes( this, user )
 #
 # Adds the current status of the system processes
+#
+# Parameters:
+#   this  message object
+#   user  user to show processes for or 'any' for all users
 #------------------------------------------------------------------------------
 
 sub processes( $$ )
@@ -110,6 +114,8 @@ sub processes( $$ )
     $message->add_title( $Lang::tr{'processes'} );
     $message->add_table( @sorted );
   }
+
+  return 1;
 }
 
 1;

@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -76,17 +76,26 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub get_log
+# sub get_log( this )
 #
+# Scans the snort alert log files and caches the data.
 #
+# Parameters:
+#   this  message object
+#
+# Returns:
+#   Reference to hash of information
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
 {
   my ($this) = @_;
 
+  # Check for cached information
   my $data = $this->cache( 'ids-alerts' );
   return $data if (defined $data);
+
+  # Scan the log files
 
   my $name = '/var/log/snort/alert';
 
@@ -101,6 +110,8 @@ sub get_log( $ )
   my $start_time = $this->get_period_start;;
   my $end_time   = $this->get_period_end;
   my @stats;
+
+  # Iterate over the log files
 
   for (my $filenum = 40 ; $filenum >= 0 ; $filenum--)
   {
@@ -126,6 +137,8 @@ sub get_log( $ )
     $year = (localtime( $stats[9] ))[YEAR];
 
     my $current_line = '';
+
+    # Scan a log file
 
     foreach my $line (<IN>)
     {
@@ -155,6 +168,8 @@ sub get_log( $ )
       $current_line = '';
 
       $sid = "$gid-$sid";
+
+      # Work out the time of the message
 
       if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
       {
@@ -224,10 +239,18 @@ sub get_log( $ )
   $this->cache( 'ids-alerts', \%info );
 
   return \%info;
-
 }
 
 
+#------------------------------------------------------------------------------
+# sub alerts( this, min_priority )
+#
+# Output information on alerts.
+#
+# Parameters:
+#   this          message object
+#   min_priority  Only output information on alerts which have this or a higher
+#                 priority.  Note that lower numbers have higher priorities.
 #------------------------------------------------------------------------------
 
 sub alerts( $$ )
@@ -259,7 +282,11 @@ sub alerts( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 
