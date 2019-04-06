@@ -4,7 +4,8 @@
 'statusmail status emails' => 'Status Emails',
 'statusmail contacts' => 'Contacts',
 'statusmail schedules' => 'Schedules',
-'statusmail name' => 'Name',
+'statusmail schedule name' => 'Name',
+'statusmail contact name' => 'Name',
 'statusmail email' => 'Email address',
 'statusmail key' => 'Encryption Key',
 'statusmail action' => 'Action',
@@ -69,7 +70,6 @@
 'statusmail kernel out of memory' => 'Out of Memory Killer',
 'statusmail kernel SYN flood' => 'SYN Flood',
 'statusmail kernel raid errors' => 'RAID errors',
-'statusmail error' => 'Error',
 'statusmail kernel segmentation fault' => 'Segmentation faults',
 'statusmail executable' => 'Executable',
 'statusmail kernel general protection fault' => 'General Protection Faults',
@@ -91,5 +91,9 @@
 'statusmail disk temperature' => 'Disk temperature',
 'statusmail blocklist update' => 'Updates',
 'statusmail events' => 'Events',
-'statusmail event' => 'Event'
+'statusmail event' => 'Event',
+'statusmail period from' => 'From',
+'statusmail period to' => 'to',
+'statusmail show' => 'Show',
+'statusmail hide' => 'Hide'
 );

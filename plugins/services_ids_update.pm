@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -64,7 +64,11 @@ sub show_table( $$$@ );
 #------------------------------------------------------------------------------
 # sub updates( this, option )
 #
+# Outputs information on IDS rule updates.
 #
+# Parameters:
+#   this    message object
+#   option  either 'summary' or 'full'; controls the amount of data output
 #------------------------------------------------------------------------------
 
 sub updates( $$ )
@@ -82,6 +86,9 @@ sub updates( $$ )
   my $active_rules = -1;
   my %unrecognised;
   my $line;
+  my $rv = 0;
+
+  # Iterate over log messages from the system log
 
   while ($line = $this->get_message_log_line)
   {
@@ -130,8 +137,11 @@ sub updates( $$ )
     {
       $unrecognised{$1}++;
     }
-
   }
+
+  # Output the results
+
+  # -- Updates
 
   if (%updates)
   {
@@ -147,9 +157,13 @@ sub updates( $$ )
     }
 
     $this->add_table( @table );
+
+    $rv = 1;
   }
 
   $this->add_text( "\n$Lang::tr{'idsupdate active rules'} $active_rules" ) if ($active_rules > -1);
+
+  # -- Errors
 
   if (%unrecognised)
   {
@@ -165,9 +179,11 @@ sub updates( $$ )
     }
 
     $this->add_table( @table );
+
+    $rv = 1;
   }
 
-  return unless ($option eq 'full');
+  return $rv unless ($option eq 'full');
 
   # -- New rules
 
@@ -199,7 +215,22 @@ sub updates( $$ )
               $Lang::tr{'idsupdate disabled'},
               "SID||$Lang::tr{'idsupdate change'}||$Lang::tr{'idsupdate from'}||$Lang::tr{'idsupdate to'}||$Lang::tr{'name'}",
               @disabled );
+
+  return $rv;
 }
+
+
+#------------------------------------------------------------------------------
+# sub show_table( this, title, heading, items )
+#
+# Outputs a table of items.
+#
+# Parameters:
+#   this     message object
+#   title    title of item to be added
+#   heading  heading row for object; fields separated by '||'
+#   items    array of rows each of which is a reference to an array of cells
+#------------------------------------------------------------------------------
 
 sub show_table( $$$@ )
 {

@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -85,7 +85,11 @@ sub get_log( $ );
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets messages from the log files that relate to the URL filter.  The data is
+# cached sot hat a second call does not process the logs again.
 #
+# Parameters:
+#   this  message object
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
@@ -100,9 +104,13 @@ sub get_log( $ )
   my @start_time = $this->get_period_start;;
   my @end_time   = $this->get_period_end;
 
+  # Iterate over the log files
+
   foreach my $name (glob '/var/log/squidGuard/*\.log')
   {
     next if ($name =~ m/squidGuard.log/);
+
+    # Iterate over old versions of the file
 
     for (my $filenum = $weeks ; $filenum >= 0 ; $filenum--)
     {
@@ -120,6 +128,8 @@ sub get_log( $ )
       {
         next;
       }
+
+      # Scna the file
 
       foreach my $line (<IN>)
       {
@@ -139,7 +149,11 @@ sub get_log( $ )
                 ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day >  $end_time[MDAY]) or
                 ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day == $end_time[MDAY] and $hour > $end_time[HOUR]));
 
+        # Is it an entry we're interested in?
+
         next unless ($line =~ m/Request/);
+
+        # Process the entry
 
         if (my ($date, $time, $pid, $type, $destination, $client) = split / /, $line)
         {
@@ -170,6 +184,16 @@ sub get_log( $ )
   return \%info;
 }
 
+
+#------------------------------------------------------------------------------
+# sub clients( this, min_count )
+#
+# Output information on the systems trying to access forbidden destinations.
+#
+# Parameters:
+#   this       message object
+#   min_count  don't output information on clients accessing less than this
+#              number of destinations
 #------------------------------------------------------------------------------
 
 sub clients( $$ )
@@ -198,9 +222,23 @@ sub clients( $$ )
   if (@table > 1)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub destinations( this, min_count )
+#
+# Output information on the forbidden destinations being accessed.
+#
+# Parameters:
+#   this       message object
+#   min_count  don't output information on destinations accessed less than this
+#              number of times.
 #------------------------------------------------------------------------------
 
 sub destinations( $$ )
@@ -227,7 +265,11 @@ sub destinations( $$ )
   if (@table > 1)
   {
     $self->add_table( @table );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;

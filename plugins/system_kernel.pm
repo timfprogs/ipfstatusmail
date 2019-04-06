@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -52,20 +52,24 @@ sub BEGIN
 ############################################################################
 
 sub get_log( $ );
-sub errors( $$ );
+sub errors( $ );
 
 #------------------------------------------------------------------------------
 # sub get_log( this )
 #
+# Gets kernel messages from the system log.
 #
+# Parameters:
+#   this  message object
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
 {
-  my ($this, $name) = @_;
+  my ($this) = @_;
 
-  my $data = $this->cache( 'system-kernel' );
-  return $data if (defined $data);
+  # Comment out since there's only one item at the moment
+  # my $data = $this->cache( 'system-kernel' );
+  # return $data if (defined $data);
 
   my %info;
   my $line;
@@ -124,18 +128,26 @@ sub get_log( $ )
     }
   }
 
-  $this->cache( 'system-kernel', \%info );
+  # $this->cache( 'system-kernel', \%info );
 
   return \%info;
 }
 
 #------------------------------------------------------------------------------
+# sub errors( this )
+#
+# Outputs kernel errors
+#
+# Parameters:
+#   this  message object
+#------------------------------------------------------------------------------
 
-sub errors( $$ )
+sub errors( $ )
 {
-  my ($self, $min_count) = @_;
+  my ($self) = @_;
   my @message;
   my @table;
+  my $rv = 0;
 
   use Sort::Naturally;
 
@@ -156,6 +168,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{RAIDErrors} })
@@ -170,6 +184,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{SegFaults} })
@@ -184,6 +200,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{GPFaults} })
@@ -198,6 +216,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{TrapInt3s} })
@@ -212,6 +232,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{UnalignedErrors} })
@@ -226,6 +248,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{FPAssists} })
@@ -240,6 +264,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{OOM} })
@@ -254,6 +280,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{Errors} })
@@ -268,6 +296,8 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
 
   if (keys %{ $$alerts{EDACs} })
@@ -282,7 +312,11 @@ sub errors( $$ )
 
     $self->add_table( @table );
     @table = ();
+
+    $rv = 1;
   }
+
+  return $rv;
 }
 
 1;

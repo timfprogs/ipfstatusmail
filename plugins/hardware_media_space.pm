@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -34,7 +34,7 @@ package Hardware_Media_Space;
 ############################################################################
 
 sub space( $$ );
-
+sub inodes( $$ );
 
 ############################################################################
 # BEGIN Block
@@ -70,9 +70,14 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub space
+# sub space( this, min_percent )
 #
-# Adds the disk usage
+# Adds the disk usage in terms of space used.
+#
+# Parameters:
+#   this         message object
+#   min_percent  Only display information if this amount of space or less is
+#                free
 #------------------------------------------------------------------------------
 
 sub space( $$ )
@@ -97,13 +102,23 @@ sub space( $$ )
   if (@lines > 1)
   {
     $message->add_table( @lines );
+
+    return 1;
   }
+
+  return 0;
 }
 
+
 #------------------------------------------------------------------------------
-# sub inodes
+# sub inodes( this, min_percent )
 #
-# Adds the disk inode usage
+# Adds the disk usage in terms of inodes used.
+#
+# Parameters:
+#   this         message object
+#   min_percent  Only display information if this number of inodes or less is
+#                free
 #------------------------------------------------------------------------------
 
 sub inodes( $$ )
@@ -128,7 +143,11 @@ sub inodes( $$ )
   if (@lines > 1)
   {
     $message->add_table( @lines );
+
+    return 1;
   }
+
+  return 0;
 }
 
 1;

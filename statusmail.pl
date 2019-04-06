@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2019                                                       #
 #                                                                          #
 ############################################################################
 
@@ -27,7 +27,7 @@ use warnings;
 
 use Sys::Syslog qw(:standard :macros);
 
-use lib "/var/ipfire/statusmail";
+use lib "/usr/lib/statusmail";
 
 require "/var/ipfire/general-functions.pl";
 require "${General::swroot}/lang.pl";
@@ -40,14 +40,14 @@ use StatusMail;
 # These variables give the locations of various files used by this script
 ############################################################################
 
-my $plugin_dir           = "${General::swroot}/statusmail/plugins";
-my $stylesheet           = "${General::swroot}/statusmail/stylesheet.css";
-my $settings             = "$plugin_dir/settings";
-my $main_settings        = "${General::swroot}/main/settings";
+my $lib_dir              = "/usr/lib/statusmail";
+my $plugin_dir           = "$lib_dir/plugins";
+my $stylesheet           = "$lib_dir/stylesheet.css";
+my $mainsettings         = "${General::swroot}/main/settings";
 my $mailsettings         = "${General::swroot}/dma/mail.conf";
-my $contacts             = "${General::swroot}/statusmail/contacts";
-my $schedules            = "${General::swroot}/statusmail/schedules";
-my $debug                = 9;
+my $contactsettings      = "${General::swroot}/statusmail/contact_settings";
+my $schedulesettings     = "${General::swroot}/statusmail/schedule_settings";
+my $debug                = 0;
 
 ############################################################################
 # Function prototypes
@@ -61,22 +61,19 @@ sub add_mail_item( % );
 
 sub send_email( $ );
 sub execute_schedule( $$ );
-
 sub abort( $ );
 sub log_message( $$ );
 sub debug( $$ );
-sub read_settings( $$ );
 
 ############################################################################
 # Variables
 ############################################################################
 
-my %main_settings = ();
+my %mainsettings  = ();
 my %sections      = ();
-my %contacts      = ();
-my %schedules     = ();
+my $contacts      = {};
+my $schedules     = {};
 my %mailsettings  = ();
-
 
 ############################################################################
 # Main function
@@ -87,13 +84,14 @@ log_message LOG_INFO, "Starting log and status email processing";
 
 # Check for existence of settings files
 
-exit unless (-r $contacts);
+exit unless (-r $contactsettings);
 exit unless (-e $mailsettings);
-exit unless (-r $schedules);
+exit unless (-r $schedulesettings);
 
 # Read settings
 
 General::readhash($mailsettings, \%mailsettings);
+General::readhash($mainsettings, \%mainsettings);
 
 unless ($mailsettings{'USEMAIL'} eq 'on')
 {
@@ -101,8 +99,8 @@ unless ($mailsettings{'USEMAIL'} eq 'on')
   exit;
 };
 
-read_settings( $contacts, \%contacts );
-read_settings( $schedules, \%schedules );
+eval qx|/bin/cat $contactsettings| if (-r $contactsettings);
+eval qx|/bin/cat $schedulesettings| if (-r $schedulesettings);
 
 # Scan for plugins
 
@@ -125,14 +123,14 @@ if (@ARGV)
 
   my ($schedule) = $ARGV[0];
 
-  if (not exists $schedules{$schedule})
+  if (exists $$schedules{$schedule})
+  {
+    execute_schedule( $schedule, $$schedules{$schedule} );
+  }
+  else
   {
     print "Schedule '$schedule' not found\n";
-    closelog;
-    exit;
   }
-
-  execute_schedule( $schedule, $schedules{$schedule} );
 
   closelog;
   exit;
@@ -146,18 +144,18 @@ $hour = 1 << $hour;
 $wday = 1 << $wday;
 $mday = 1 << $mday;
 
-foreach my $schedule (keys %schedules)
+foreach my $schedule (keys %$schedules)
 {
-  next unless ($schedules{$schedule}{'enable'} eq 'on');        # Must be enabled
+  next unless ($$schedules{$schedule}{'enable'} eq 'on'); # Must be enabled
 
-  next unless ($schedules{$schedule}{'mday'} & $mday or # Must be due today
-               $schedules{$schedule}{'wday'} & $wday);
+  next unless ($$schedules{$schedule}{'mday'} & $mday or  # Must be due today
+               $$schedules{$schedule}{'wday'} & $wday);
 
-  next unless ($schedules{$schedule}{'hours'} & $hour); # Must be due this hour
+  next unless ($$schedules{$schedule}{'hours'} & $hour);  # Must be due this hour
 
   debug 1, "Schedule $schedule due";
 
-  execute_schedule( $schedule, $schedules{$schedule} );
+  execute_schedule( $schedule, $$schedules{$schedule} );
 }
 
 closelog;
@@ -179,12 +177,13 @@ sub execute_schedule( $$ )
 {
   my ($name, $schedule) = @_;
   my @contacts;
+  my $status = 0;
 
   # Check that at least one of the contacts is enabled
 
   foreach my $contact (split '\|', $$schedule{'email'})
   {
-    push @contacts, $contact if (exists $contacts{$contact} and $contacts{$contact}{'enable'});
+    push @contacts, $contact if (exists $$contacts{$contact} and $$contacts{$contact}{'enable'} eq 'on');
   }
 
   if (not @contacts)
@@ -195,13 +194,17 @@ sub execute_schedule( $$ )
 
   log_message LOG_INFO, "Executing status mail schedule $name";
 
+  # Look for a theme stylesheet
+
+  my $theme_stylesheet = "$lib_dir/$mainsettings{'THEME'}.css";
+  $stylesheet = $theme_stylesheet if (-r $theme_stylesheet);
+
   # Create message
 
   my $message = new StatusMail( 'format'             => $$schedule{'format'},
                                 'subject'            => $$schedule{'subject'},
-                                'to'                 => [ @contacts],
+                                'to'                 => [ @contacts ],
                                 'sender'             => $mailsettings{'SENDER'},
-                                'contacts'           => \%contacts,
                                 'max_lines_per_item' => $$schedule{'lines'},
                                 'stylesheet'         => $stylesheet );
 
@@ -212,6 +215,9 @@ sub execute_schedule( $$ )
   }
 
   $message->calculate_period( $$schedule{'period-value'}, $$schedule{'period-unit'} );
+
+  $message->add_text( "$Lang::tr{'statusmail period from'} " . localtime( $message->get_period_start ) .
+                      " $Lang::tr{'statusmail period to'} " . localtime( $message->get_period_end ) . "\n" );
 
   # Loop through the various log items
 
@@ -229,11 +235,15 @@ sub execute_schedule( $$ )
       {
         debug 3, "Item $item";
 
+        # Is the item enabled?
+
         my $key = $sections{$section}{$subsection}{$item}{'ident'};
 
         next unless (exists $$schedule{"enable_$key"} and $$schedule{"enable_$key"} eq 'on');
         next unless ($sections{$section}{$subsection}{$item}{'format'} eq 'both' or
                      $sections{$section}{$subsection}{$item}{'format'} eq $$schedule{'format'});
+
+        # Yes. Call the function to get it's content - with option if necessary
 
         debug 2, "Process item $section :: $subsection :: $item";
 
@@ -243,11 +253,11 @@ sub execute_schedule( $$ )
 
         if (exists $$schedule{"value_$key"})
         {
-          &$function( $message, $$schedule{"value_$key"} );
+          $status += &$function( $message, $$schedule{"value_$key"} );
         }
         else
         {
-          &$function( $message );
+          $status += &$function( $message );
         }
       }
 
@@ -257,15 +267,21 @@ sub execute_schedule( $$ )
 
   # End the Message
 
-  debug 1, "Send mail message";
-  $message->send;
+  if ($status > 0)
+  {
+    debug 1, "Send mail message";
+    $message->send;
+  }
 }
 
 
 #------------------------------------------------------------------------------
 # sub add_mail_item( params )
 #
-# Adds a possible status item to the section and subsection specified.
+# Adds a possible status item to the section and subsection specified.  This
+# function is called from the BEGIN block of the plugin.
+#
+# Any errors cause the item to be ignored without raising an error.
 #
 # Parameters:
 #   params  hash containing details of the item to be added:
@@ -285,19 +301,20 @@ sub execute_schedule( $$ )
 #   type          must be 'integer'
 #   min           minimum valid value of parameter
 #   max           maximum valid value of parameter
-#
-# The option is sanity checked but otherwise ignored by this script.
 #------------------------------------------------------------------------------
 
 sub add_mail_item( % )
 {
   my %params = @_;
 
+  # Check for all required parameters
 
   return unless (exists $params{'section'}    and
                  exists $params{'subsection'} and
                  exists $params{'item'}       and
                  exists $params{'function'} );
+
+  # Check the option
 
   if ($params{'option'})
   {
@@ -319,6 +336,8 @@ sub add_mail_item( % )
 
   $params{'format'} = 'both' unless (exists $params{'format'});
 
+  # Record that the option exists
+
   $sections{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'function' => $params{'function'},
                                                                             'format'   => $params{'format'},
                                                                             'ident'    => $params{'ident'} };
@@ -326,7 +345,7 @@ sub add_mail_item( % )
 
 
 #------------------------------------------------------------------------------
-# sub abort( message, parameters... )
+# sub abort( message )
 #
 # Aborts the update run, printing out an error message.
 #
@@ -346,7 +365,8 @@ my ($message) = @_;
 #------------------------------------------------------------------------------
 # sub log_message( level, message )
 #
-# Logs a message
+# Logs a message to the system log.  If the script is run from the terminal
+# then the message is also printed locally.
 #
 # Parameters:
 #   level   Severity of message
@@ -381,40 +401,4 @@ sub debug( $$ )
   {
     log_message LOG_DEBUG, $message;
   }
-}
-
-
-#------------------------------------------------------------------------------
-# sub read_settings( file, hash )
-#
-# Reads the hash from the named file.  Handles a hash of hashes.
-#------------------------------------------------------------------------------
-
-sub read_settings( $$ )
-{
-  my ($file, $hash) = @_;
-
-  my $item= '';
-
-  open IN, '<', $file or die "Can't open $file for input: $!";
-
-  foreach my $line (<IN>)
-  {
-    chomp $line;
-
-    next unless ($line);
-
-    if ($line =~ m/^\[(.*)\]$/)
-    {
-      $item = $1;
-    }
-    else
-    {
-      my ($field, $value) = split /\s*=\s*/, $line, 2;
-
-      $$hash{$item}{$field} = $value;
-    }
-  }
-
-  close IN;
 }
