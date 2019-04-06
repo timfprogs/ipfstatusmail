@@ -695,10 +695,12 @@ END
   if ($show_contacts)
   {
     # Selected contact details and Import/Add buttons
+    
+    $button = $Lang::tr{'add'};
 
     if ($current_contact)
     {
-      $button          = $Lang::tr{'update'};
+      $button = $Lang::tr{'update'};
 
       if (exists $$contacts{$current_contact})
       {
