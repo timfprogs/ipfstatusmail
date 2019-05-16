@@ -24,7 +24,7 @@ plugins/services-ups-apc.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_blocklist_update.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_clamav.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_ids_update.pm /usr/lib/statusmail nobody.nobody 0644
-plugins/services_intrusion_detection_system.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/services_intrusion_prevention_system.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_urlfilter.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_kernel.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_packfire.pm /usr/lib/statusmail nobody.nobody 0644

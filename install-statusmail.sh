@@ -95,6 +95,7 @@ fi
 rm -f /var/ipfile/statusmail/*.pm
 rm -f /var/ipfile/statusmail/stylesheet.css
 rm -f /var/ipfile/statusmail/generate_signature.sh
+rm -f /usr/lib/statusmail/plugins/services_intrusion_detection_system.pm
 
 # Link to the main script from the fcron directory
 

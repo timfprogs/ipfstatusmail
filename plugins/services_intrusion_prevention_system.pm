@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -27,7 +27,7 @@ use warnings;
 
 require "${General::swroot}/lang.pl";
 
-package Services_Intrusion_Detection_System;
+package Services_Intrusion_Prevention_System;
 
 use Time::Local;
 
@@ -60,13 +60,13 @@ use constant { SEC    => 0,
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'services-ids-alerts',
+  main::add_mail_item( 'ident'      => 'services-ips-alerts',
                        'section'    => $Lang::tr{'services'},
                        'subsection' => $Lang::tr{'intrusion detection system'},
-                       'item'       => $Lang::tr{'statusmail ids alerts'},
+                       'item'       => $Lang::tr{'statusmail ips alerts'},
                        'function'   => \&alerts,
                        'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail ids min priority'},
+                                         'name'   => $Lang::tr{'statusmail ips min priority'},
                                          'min'    => 1,
                                          'max'    => 4 } );
 }
@@ -76,28 +76,20 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub get_log( this )
+# sub get_log
 #
-# Scans the snort alert log files and caches the data.
 #
-# Parameters:
-#   this  message object
-#
-# Returns:
-#   Reference to hash of information
 #------------------------------------------------------------------------------
 
 sub get_log( $ )
 {
   my ($this) = @_;
 
-  # Check for cached information
-  my $data = $this->cache( 'ids-alerts' );
-  return $data if (defined $data);
+# There's only one data item, so don't use the cache
+#  my $data = $this->cache( 'ips-alerts' );
+#  return $data if (defined $data);
 
-  # Scan the log files
-
-  my $name = '/var/log/snort/alert';
+  my $name = '/var/log/suricata/fast.log';
 
   my %info;
   my $last_mon   = 0;
@@ -107,13 +99,11 @@ sub get_log( $ )
   my $time       = 0;
   my $now        = time();
   my $year       = 0;
-  my $start_time = $this->get_period_start;;
+  my $start_time = $this->get_period_start;
   my $end_time   = $this->get_period_end;
   my @stats;
 
-  # Iterate over the log files
-
-  for (my $filenum = 40 ; $filenum >= 0 ; $filenum--)
+  for (my $filenum = $this->get_number_weeks ; $filenum >= 0 ; $filenum--)
   {
     my $filename = $filenum < 1 ? $name : "$name.$filenum";
 
@@ -134,48 +124,28 @@ sub get_log( $ )
       next;
     }
 
-    $year = (localtime( $stats[9] ))[YEAR];
-
-    my $current_line = '';
-
-    # Scan a log file
-
     foreach my $line (<IN>)
     {
       chomp $line;
 
-      # Alerts cover multiple lines and have the format:
+      # Alerts have the format:
       #
-      #   [**] [gid:sid:prio] message [**]
-      #   [Classification: type] [Priority: priority]
-      #   mm/dd-hh:mm:ss.mmmmmm src_ip:port -> dest_ip:[port]
-      #   various other lines, terminated by a blank line
+      # mm/dd/yyyy-hh:mm:ss.uuuuuu  [Action] [**] [gid:sid:prio] message [**] [Classification: type] [Priority: prio] {protocol} src-ip:src-port -> dest-ip:dest-port
 
       $line =~ s/^\s+//;
       $line =~ s/\s+$//;
 
-      if ($line)
-      {
-        $current_line .= $line;
-        next;
-      }
+      next unless ($line);
 
-      next unless ($current_line);
-
-      my ($gid, $sid, $message, $prio, $mon, $day, $hour, $min, $sec, $src, $dest) =
-        $current_line =~ m/\[(\d+):(\d+):\d+\]\s*(.*)\s+\[\*\*\].*\[Priority:\s(\d+)\].*?(\d+)\/(\d+)-(\d+):(\d+):(\d+)\.\d+\s+(\d+\.\d+\.\d+\.\d+(?::\d+)?) -> (\d+\.\d+\.\d+\.\d+(?::\d+)?)/;
-
-      $current_line = '';
+      my ($mon, $day, $year, $hour, $min, $sec, $gid, $sid, $message, $prio, $src, $dest) =
+        $line =~ m|(\d+)/(\d+)/(\d+)-(\d+):(\d+):(\d+)\.\d+\s+\[\w+\]\s+\[\*\*\]\s+\[(\d+):(\d+):\d+\]\s*(.*)\s+\[\*\*\].*\[Priority:\s(\d+)\].*?\s+(\d+\.\d+\.\d+\.\d+(?::\d+)?) -> (\d+\.\d+\.\d+\.\d+(?::\d+)?)|;
 
       $sid = "$gid-$sid";
-
-      # Work out the time of the message
 
       if ($mon != $last_mon or $day != $last_day or $hour != $last_hour)
       {
         # Hour, day or month changed.  Convert to unix time so we can work out
         # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information.
 
         my @time;
 
@@ -184,25 +154,6 @@ sub get_log( $ )
         ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = ($mon - 1, $day, $hour, $min, $sec);
 
         $time = timelocal( @time );
-
-        if ($time > $now)
-        {
-          # We can't have times in the future, so this must be the previous year.
-
-          $year--;my $ports = 0;
-          $time[YEAR]--;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
-        elsif ($time < $last_time)
-        {
-          # Time is increasing, so we must have gone over a year boundary.
-
-          $year++;
-          $time[YEAR]++;
-          $time      = timelocal( @time );
-          $last_time = $time;
-        }
 
         ($last_mon, $last_day, $last_hour) = ($mon, $day, $hour);
       }
@@ -236,21 +187,13 @@ sub get_log( $ )
     close IN;
   }
 
-  $this->cache( 'ids-alerts', \%info );
+#  $this->cache( 'ids-alerts', \%info );
 
   return \%info;
+
 }
 
 
-#------------------------------------------------------------------------------
-# sub alerts( this, min_priority )
-#
-# Output information on alerts.
-#
-# Parameters:
-#   this          message object
-#   min_priority  Only output information on alerts which have this or a higher
-#                 priority.  Note that lower numbers have higher priorities.
 #------------------------------------------------------------------------------
 
 sub alerts( $$ )
@@ -265,7 +208,8 @@ sub alerts( $$ )
 
   my $stats = get_log( $self );
 
-  foreach my $sid (sort { $$stats{by_sid}{$a}{priority} <=> $$stats{by_sid}{$b}{priority} || $$stats{by_sid}{$b}{count} <=> $$stats{by_sid}{$a}{count}} keys %{ $$stats{by_sid} } )
+  foreach my $sid (sort { $$stats{by_sid}{$a}{priority} <=> $$stats{by_sid}{$b}{priority} ||
+                          $$stats{by_sid}{$b}{count} <=> $$stats{by_sid}{$a}{count}} keys %{ $$stats{by_sid} } )
   {
     my $message  = $$stats{by_sid}{$sid}{message};
     my $priority = $$stats{by_sid}{$sid}{priority};
@@ -275,6 +219,8 @@ sub alerts( $$ )
     my $percent  = int( 100 * $count / $$stats{total} + 0.5);
 
     last if ($priority > $min_priority);
+    
+    $message = $self->split_string( $message, 40 );
 
     push @table, [ $sid, $priority, $message, $count, $percent, $first, $last ];
   }
@@ -282,10 +228,10 @@ sub alerts( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
-
+    
     return 1;
   }
-
+  
   return 0;
 }
 
