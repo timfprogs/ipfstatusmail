@@ -62,7 +62,7 @@ sub BEGIN
 {
   main::add_mail_item( 'ident'      => 'services-ips-alerts',
                        'section'    => $Lang::tr{'services'},
-                       'subsection' => $Lang::tr{'intrusion prevention system'},
+                       'subsection' => $Lang::tr{'intrusion detection system'},
                        'item'       => $Lang::tr{'statusmail ips alerts'},
                        'function'   => \&alerts,
                        'option'     => { 'type'   => 'integer',
