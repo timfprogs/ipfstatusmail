@@ -725,8 +725,6 @@ END
     
     $button = $Lang::tr{'add'};
 
-    $button = $Lang::tr{'add'};
-
     if ($current_contact)
     {
       $button = $Lang::tr{'update'};
