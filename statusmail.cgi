@@ -722,6 +722,8 @@ END
   if ($show_contacts)
   {
     # Selected contact details and Import/Add buttons
+    
+    $button = $Lang::tr{'add'};
 
     $button = $Lang::tr{'add'};
 
