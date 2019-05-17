@@ -18,8 +18,23 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
+############################################################################
+# Main script for statusmail.                                              #
+#                                                                          #
+# Usually called by fcron when it will check to see if any schedules are   #
+# due in which case the schedule will be executed.  If the schedule        #
+# produces any output it is sent as an email to the recipients given in    #
+# the schedule.  Emails are always signed using GPG and will be encrypted  #
+# if an encryption keys is available for the user.                         #
+#                                                                          #
+# Can also be run with the name of a schedule as an argument in which case #
+# the schedule is executed immediately regrardless of whether it is due or #
+# not.                                                                     #
+#                                                                          #
+# If run from a terminal additional debugging will be turned on and log    #
+# messages will be output to the terminal.                                 #
 ############################################################################
 
 use strict;
@@ -75,6 +90,7 @@ my $contacts      = {};
 my $schedules     = {};
 my %mailsettings  = ();
 
+
 ############################################################################
 # Main function
 ############################################################################
@@ -99,7 +115,7 @@ unless ($mailsettings{'USEMAIL'} eq 'on')
   exit;
 };
 
-eval qx|/bin/cat $contactsettings| if (-r $contactsettings);
+eval qx|/bin/cat $contactsettings|  if (-r $contactsettings);
 eval qx|/bin/cat $schedulesettings| if (-r $schedulesettings);
 
 # Scan for plugins
@@ -215,7 +231,7 @@ sub execute_schedule( $$ )
   }
 
   $message->calculate_period( $$schedule{'period-value'}, $$schedule{'period-unit'} );
-
+  
   $message->add_text( "$Lang::tr{'statusmail period from'} " . localtime( $message->get_period_start ) .
                       " $Lang::tr{'statusmail period to'} " . localtime( $message->get_period_end ) . "\n" );
 
@@ -326,7 +342,9 @@ sub add_mail_item( % )
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
-      return unless (exists $params{'option'}{'min'} and exists $params{'option'}{'max'} and $params{'option'}{'min'} < $params{'option'}{'max'});
+      return unless (exists $params{'option'}{'min'} and
+                     exists $params{'option'}{'max'} and
+                     $params{'option'}{'min'} < $params{'option'}{'max'});
     }
     else
     {

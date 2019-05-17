@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -67,9 +67,9 @@ sub get_log( $ )
 {
   my ($this) = @_;
 
-  # Comment out since there's only one item at the moment
-  # my $data = $this->cache( 'system-kernel' );
-  # return $data if (defined $data);
+# Comment out since there's only one item at the moment
+# my $data = $this->cache( 'system-kernel' );
+# return $data if (defined $data);
 
   my %info;
   my $line;
@@ -128,7 +128,7 @@ sub get_log( $ )
     }
   }
 
-  # $this->cache( 'system-kernel', \%info );
+# $this->cache( 'system-kernel', \%info );
 
   return \%info;
 }

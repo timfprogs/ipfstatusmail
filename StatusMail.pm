@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -71,10 +71,11 @@ my %address_lookup_cache;
 sub calculate_period( $$ );
 sub get_period_start();
 sub get_period_end();
-sub get_weeks_covered();
+sub get_number_weeks();
 sub cache( $;$ );
 sub lookup_ip_address( $$ );
 sub set_host_name( $$$ );
+sub split_string( $$$ );
 
 ############################################################################
 # Initialisation code
@@ -134,8 +135,8 @@ sub calculate_period( $$ )
 
   @end_time = localtime();
 
-  $end_time[0] = 0;
-  $end_time[1] = 0;
+  $end_time[SEC] = 0;
+  $end_time[MIN] = 0;
 
   $end_time = timelocal( @end_time );
 
@@ -145,11 +146,11 @@ sub calculate_period( $$ )
 
     @start_time = @end_time;
 
-    $start_time[4] -= $value;
-    if ($start_time[4] < 0 )
+    $start_time[MON] -= $value;
+    if ($start_time[MON] < 0 )
     {
-      $start_time[4] += 12;
-      $start_time[5]--;
+      $start_time[MON] += 12;
+      $start_time[YEAR]--;
     }
 
     $start_time = timelocal( @start_time );
@@ -174,12 +175,12 @@ sub calculate_period( $$ )
 
   # Add the alphabetic month to the end of the time lists
 
-  push @start_time, $monthnames[ $start_time[4] ];
-  push @end_time,   $monthnames[ $end_time[4] ];
+  push @start_time, $monthnames[ $start_time[MON] ];
+  push @end_time,   $monthnames[ $end_time[MON] ];
 
   # Calculate how many archive files have to be read
 
-  my $week_start = $start_time - ($start_time[6] * 86400) - ($start_time[2] * 3600) + 3600;
+  my $week_start = $start_time - ($start_time[WDAY] * 86400) - ($start_time[HOUR] * 3600) + 3600;
   $weeks_covered = int( (time() - $week_start) / (86400 * 7) );
 
   $self->{'start_time_array'} = \@start_time;
@@ -268,16 +269,16 @@ sub cache( $;$ )
 {
   my ($self, $name, $item) = @_;
 
-	if ($item)
-	{
-	  $cache{$name} = $item;
-	}
-	else
-	{
-	  return $cache{$name};
-	}
+  if ($item)
+  {
+    $cache{$name} = $item;
+  }
+  else
+  {
+    return $cache{$name};
+  }
 
-	return undef;
+  return undef;
 }
 
 
@@ -452,7 +453,6 @@ sub get_message_log_line
     }
   }
 
-  print $line if ($line);
   return $line;
 }
 
@@ -502,5 +502,29 @@ sub set_host_name( $$$ )
   }
 }
 
+
+#------------------------------------------------------------------------------
+# sub spilt_string( string, size )
+#
+# Splits a string into multiple lf separated lines
+#------------------------------------------------------------------------------
+
+sub split_string( $$$ )
+{
+  my ($self, $string, $size) = @_;
+  
+  my $out = '';
+    
+  while (length $string > $size)
+  {
+    $string =~ s/(.{$size,}?)\s+//;
+    last unless ($1);
+    $out .= $1 . "\n";
+  }
+  
+  $out .= $string;
+
+  return $out;
+}
 
 1;

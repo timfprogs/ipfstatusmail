@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -100,7 +100,7 @@ sub get_log( $ )
   return $data if (defined $data);
 
   my %info;
-  my $weeks = $this->get_number_weeks;
+  my $weeks      = $this->get_number_weeks;
   my @start_time = $this->get_period_start;;
   my @end_time   = $this->get_period_end;
 
@@ -129,7 +129,7 @@ sub get_log( $ )
         next;
       }
 
-      # Scna the file
+      # Scan the file
 
       foreach my $line (<IN>)
       {

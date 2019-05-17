@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -78,7 +78,9 @@ sub core( $ )
   my $installed_file   = '/opt/pakfire/db/core/mine';
   my $update_list_file = '/opt/pakfire/db/lists/core-list.db';
 
-  open IN, '<', $installed_file or die "Can't open current core version file: $!";
+  return 0 unless (-r $installed_file and -r $update_list_file);
+  
+  open IN, '<', $installed_file or warn "Can't open current core version file: $!";
 
   my $current = <IN>;
   chomp $current;
@@ -87,7 +89,7 @@ sub core( $ )
 
   my $core_release;
 
-  open IN, '<', $update_list_file or die "Can't open core update list file: $!";
+  open IN, '<', $update_list_file or warn "Can't open core update list file: $!";
 
   foreach my $line (<IN>)
   {
@@ -127,13 +129,15 @@ sub addon( $ )
   my $release = 0;
   my %paks    = ();
 
+  return 0 unless (-r $update_list_file and -r $installed_dir );
+
   # Read the installed versions
 
-  opendir DIR, $installed_dir or die "Can't open installed package dir: $!";
+  opendir DIR, $installed_dir or warn "Can't open installed package dir: $!";
 
   foreach my $file (readdir DIR)
   {
-    open IN, '<', "$installed_dir/$file" or die "Can't open package file $file: $!";
+    open IN, '<', "$installed_dir/$file" or warn "Can't open package file $file: $!";
 
     foreach my $line (<IN>)
     {
@@ -168,7 +172,7 @@ sub addon( $ )
 
   my $output = '';
 
-  open IN, '<', $update_list_file or die "Can't open package list file $update_list_file: $!";
+  open IN, '<', $update_list_file or warn "Can't open package list file $update_list_file: $!";
 
   foreach my $line (<IN>)
   {

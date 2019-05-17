@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -254,7 +254,6 @@ sub send( $@ )
 
   #----------------------------------------------------------------------------
   # Sign message
-  #----------------------------------------------------------------------------
 
   # Prepare to sign the data
 
@@ -296,7 +295,7 @@ sub send( $@ )
 
   # Create the message that will contain the data and its signature
 
-  my $signed_message = new MIME::Lite(Type    => 'multipart/mixed' );
+  my $signed_message = new MIME::Lite(Type => 'multipart/mixed' );
 
   $signed_message->attr( 'content-type'          => 'multipart/signed' );
   $signed_message->attr( 'content-type.protocol' => 'application/pgp-signature' );
@@ -333,7 +332,6 @@ sub send( $@ )
 
   #----------------------------------------------------------------------------
   # Encrypt message
-  #----------------------------------------------------------------------------
 
   # Encrypt and send the message to signed and encrypted recipients
 
@@ -386,6 +384,8 @@ sub send( $@ )
     close $to_gpg;
 
     $encrypted .= $_ while (<$from_gpg>);
+    
+    close $from_gpg;
 
     # Create the message that will contain the data and its signature
 

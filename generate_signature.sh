@@ -18,15 +18,17 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
+############################################################################
+# Generates a PGP key that is used to sign email messages                  #
 ############################################################################
 
 source /var/ipfire/dma/mail.conf
 
 # Find the old key if there is one so we can delete it later
 
-OLDKEY=`gpg --homedir /var/ipfire/statusmail/keys --with-colons --fingerprint --list-keys IPFire | sed -ne '/^fpr/{s/fpr//;s/://g;p}'`
+OLDKEY=`gpg --homedir /var/ipfire/statusmail/keys --with-colons --fingerprint --list-keys IPFire | sed -ne '/^fpr/{s/fpr//;s/://g;p}'` 2>/dev/null
 
 echo Generate new keys
 

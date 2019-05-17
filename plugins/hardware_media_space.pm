@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -132,6 +132,7 @@ sub inodes( $$ )
   foreach my $line (`df -i`)
   {
     my @fields = split /\s+/, $line, 6;
+    next if ($fields[1] == 0);
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;

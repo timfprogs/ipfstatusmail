@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -29,6 +29,44 @@ require "${General::swroot}/lang.pl";
 
 package System_Status_Services;
 
+############################################################################
+# Variables
+############################################################################
+
+my %servicenames = (
+    $Lang::tr{'dhcp server'} => 'dhcpd',
+    $Lang::tr{'web server'} => 'httpd',
+    $Lang::tr{'cron server'} => 'fcron',
+    $Lang::tr{'dns proxy server'} => 'unbound',
+    $Lang::tr{'logging server'} => 'syslogd',
+    $Lang::tr{'kernel logging server'} => 'klogd',
+    $Lang::tr{'ntp server'} => 'ntpd',
+    $Lang::tr{'secure shell server'} => 'sshd',
+    $Lang::tr{'vpn'} => 'charon',
+    $Lang::tr{'web proxy'} => 'squid',
+    'OpenVPN' => 'openvpn',
+    $Lang::tr{'intrusion prevention system'} => 'suricata'
+  );
+
+my %fullname = (
+    $Lang::tr{'dhcp server'} => "$Lang::tr{'dhcp server'}",
+    $Lang::tr{'web server'} => $Lang::tr{'web server'},
+    $Lang::tr{'cron server'} => $Lang::tr{'cron server'},
+    $Lang::tr{'dns proxy server'} => $Lang::tr{'dns proxy server'},
+    $Lang::tr{'logging server'} => $Lang::tr{'logging server'},
+    $Lang::tr{'kernel logging server'} => $Lang::tr{'kernel logging server'},
+    $Lang::tr{'ntp server'} => "$Lang::tr{'ntp server'}",
+    $Lang::tr{'secure shell server'} => "$Lang::tr{'secure shell server'}",
+    $Lang::tr{'vpn'} => "$Lang::tr{'vpn'}",
+    $Lang::tr{'web proxy'} => "$Lang::tr{'web proxy'}",
+    'OpenVPN' => "OpenVPN",
+    $Lang::tr{'intrusion prevention system'} => "$Lang::tr{'intrusion prevention system'}",
+  );
+
+# Hash to overwrite the process name of a process if it differs fromt the launch command.
+my %overwrite_exename_hash = (
+    "suricata" => "Suricata-Main"
+);
 
 ############################################################################
 # Function prototypes
@@ -82,38 +120,6 @@ sub services( $ )
     $read_netsettings = 1;
   }
 
-  my %servicenames = (
-      $Lang::tr{'dhcp server'} => 'dhcpd',
-      $Lang::tr{'web server'} => 'httpd',
-      $Lang::tr{'cron server'} => 'fcron',
-      $Lang::tr{'dns proxy server'} => 'unbound',
-      $Lang::tr{'logging server'} => 'syslogd',
-      $Lang::tr{'kernel logging server'} => 'klogd',
-      $Lang::tr{'ntp server'} => 'ntpd',
-      $Lang::tr{'secure shell server'} => 'sshd',
-      $Lang::tr{'vpn'} => 'charon',
-      $Lang::tr{'web proxy'} => 'squid',
-      'OpenVPN' => 'openvpn'
-    );
-
- my %fullname = (
-      $Lang::tr{'dhcp server'} => "$Lang::tr{'dhcp server'}",
-      $Lang::tr{'web server'} => $Lang::tr{'web server'},
-      $Lang::tr{'cron server'} => $Lang::tr{'cron server'},
-      $Lang::tr{'dns proxy server'} => $Lang::tr{'dns proxy server'},
-      $Lang::tr{'logging server'} => $Lang::tr{'logging server'},
-      $Lang::tr{'kernel logging server'} => $Lang::tr{'kernel logging server'},
-      $Lang::tr{'ntp server'} => "$Lang::tr{'ntp server'}",
-      $Lang::tr{'secure shell server'} => "$Lang::tr{'secure shell server'}",
-      $Lang::tr{'vpn'} => "$Lang::tr{'vpn'}",
-      $Lang::tr{'web proxy'} => "$Lang::tr{'web proxy'}",
-      'OpenVPN' => "OpenVPN",
-      "$Lang::tr{'intrusion detection system'} (GREEN)" => "$Lang::tr{'intrusion detection system'} (GREEN)",
-      "$Lang::tr{'intrusion detection system'} (RED)" => "$Lang::tr{'intrusion detection system'} (RED)",
-      "$Lang::tr{'intrusion detection system'} (ORANGE)" => "$Lang::tr{'intrusion detection system'} (ORANGE)",
-      "$Lang::tr{'intrusion detection system'} (BLUE)" => "$Lang::tr{'intrusion detection system'} (BLUE)"
-    );
-
   my $iface = '';
 
   if (open(FILE, "${General::swroot}/red/iface"))
@@ -121,21 +127,6 @@ sub services( $ )
     $iface = <FILE>;
     close FILE;
     chomp $iface;
-  }
-
-  # Find the names of the Snort processes
-
-  $servicenames{"$Lang::tr{'intrusion detection system'} (RED)"}   = "snort_${iface}";
-  $servicenames{"$Lang::tr{'intrusion detection system'} (GREEN)"} = "snort_$netsettings{'GREEN_DEV'}";
-
-  if (exists $netsettings{'ORANGE_DEV'} and $netsettings{'ORANGE_DEV'} ne '')
-  {
-    $servicenames{"$Lang::tr{'intrusion detection system'} (ORANGE)"} = "snort_$netsettings{'ORANGE_DEV'}";
-  }
-
-  if (exists $netsettings{'BLUE_DEV'} and $netsettings{'BLUE_DEV'} ne '')
-  {
-    $servicenames{"$Lang::tr{'intrusion detection system'} (BLUE)"} = "snort_$netsettings{'BLUE_DEV'}";
   }
 
   # Item title and table heading
@@ -157,6 +148,7 @@ sub services( $ )
   foreach my $key (sort keys %servicenames)
   {
     my $shortname = $servicenames{$key};
+   
     my @status = isrunning( $shortname );
 
     if ($message->is_html)
@@ -214,34 +206,27 @@ sub services( $ )
     foreach my $key (@services)
     {
       # blacklist some packages
-      #
-      # alsa has trouble with the volume saving and was not really stopped
-      # mdadm should not stopped with webif because this could crash the system
-      #
+      
       chomp($key);
 
       next if ( $key eq 'squid' );
 
-      if ( ($key ne "alsa") and ($key ne "mdadm") )
+      my @status = isrunningaddon( $key );
+
+      if ($message->is_html)
       {
-        my $shortname = $servicenames{$key};
-        my @status = isrunningaddon( $message );
+        my $running = "<td class='ok'>$Lang::tr{'running'}</td>";
 
-        if ($message->is_html)
+        if ($status[0] ne $Lang::tr{'running'})
         {
-          my $running = "<td class='ok'>$Lang::tr{'running'}</td>";
-
-          if ($status[0] ne $Lang::tr{'running'})
-          {
-            $running = "<td class='error'>$Lang::tr{'stopped'}</td>";
-          }
-
-          push @output, "<tr><td>$key</td>$running<td style='text-align: right'>$status[1]</td><td style='text-align: right'>$status[2]</td></tr>\n";
+          $running = "<td class='error'>$Lang::tr{'stopped'}</td>";
         }
-        else
-        {
-          push @output, [ $key, @status ];
-        }
+
+        push @output, "<tr><td>$key</td>$running<td style='text-align: right'>$status[1]</td><td style='text-align: right'>$status[2]</td></tr>\n";
+      }
+      else
+      {
+        push @output, [ $key, @status ];
       }
     }
   }
@@ -281,8 +266,24 @@ sub isrunning( $ )
 
   @status = ( $Lang::tr{'stopped'}, '', '' );
 
-  $cmd =~ /(^[a-z]+)/;
-  $exename = $1;
+  $exename = $cmd =~ /(^[a-z]+)/;
+
+  # Check if the exename needs to be overwritten.
+  # This happens if the expected process name string
+  # differs from the real one. This may happened if
+  # a service uses multiple processes or threads.
+  if (exists($overwrite_exename_hash{$cmd}))
+  {
+    # Grab the string which will be reported by
+    # the process from the corresponding hash.
+    $exename = $overwrite_exename_hash{$cmd};
+  }
+  else
+  {
+    # Directly expect the launched command as
+    # process name.
+    $exename = $cmd;
+  }
 
   if (open(FILE, "/var/run/${cmd}.pid"))
   {

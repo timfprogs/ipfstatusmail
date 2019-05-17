@@ -170,156 +170,172 @@ $show_signing_key     = $cgiparams{'show signing key'}     || 0;
 $show_encryption_keys = $cgiparams{'show encryption keys'} || 0;
 $show_contacts        = $cgiparams{'show contacts'}        || 0;
 
-$show_signing_key     = 1 if (exists $cgiparams{'SIGN_ACTION'});
-$show_encryption_keys = 1 if (exists $cgiparams{'KEY_ACTION'});
-$show_contacts        = 1 if (exists $cgiparams{'CONTACT_ACTION'});
+$show_signing_key     = 1 if ($sign_key =~ m/nothing exported/ or not $sign_key);
 
-if ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail import'})
-{
-  my $upload = $a->param("UPLOAD");
-  $encryption_key = '';
-
-  binmode $upload;
-
-  foreach my $line ( <$upload> )
-  {
-    $encryption_key .= $line;
-  }
-
-  check_key( $encryption_key );
-  get_keys();
-
-  $show_contacts = 1;
-}
-elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'add'})
-{
-  check_key( $cgiparams{'key'} );
-
-  get_keys();
-}
-elsif ($cgiparams{'KEY_ACTION'} eq 'remove key')
-{
-  my $key = $cgiparams{'KEY'};
-  $key =~ s/\s+//g;
-
-  my @output = `$gpg --batch --yes --delete-key $key 2>&1`;
-
-  if ($?)
-  {
-    $errormessage .= join '<br>', "<p>$Lang::tr{'statusmail key remove failed'} $?", @output;
-    $errormessage .= "</p>\n";
-  }
-
-  get_keys();
-}
-elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail show'})
+if (exists $cgiparams{'KEY_ACTION'})
 {
   $show_encryption_keys = 1;
-}
-elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail hide'})
-{
-  $show_encryption_keys = 0;
+
+  if ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail import'})
+  {
+    my $upload = $a->param("UPLOAD");
+    $encryption_key = '';
+
+    binmode $upload;
+
+    foreach my $line ( <$upload> )
+    {
+      $encryption_key .= $line;
+    }
+
+    check_key( $encryption_key );
+    get_keys();
+
+    $show_contacts = 1;
+  }
+  elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'add'})
+  {
+    check_key( $cgiparams{'key'} );
+
+    get_keys();
+  }
+  elsif ($cgiparams{'KEY_ACTION'} eq 'remove key')
+  {
+    my $key = $cgiparams{'KEY'};
+    $key =~ s/\s+//g;
+
+    my @output = `$gpg --batch --yes --delete-key $key 2>&1`;
+
+    if ($?)
+    {
+      $errormessage .= join '<br>', "<p>$Lang::tr{'statusmail key remove failed'} $?", @output;
+      $errormessage .= "</p>\n";
+    }
+
+    get_keys();
+  }
+  elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail show'})
+  {
+    $show_encryption_keys = 1;
+  }
+  elsif ($cgiparams{'KEY_ACTION'} eq $Lang::tr{'statusmail hide'})
+  {
+    $show_encryption_keys = 0;
+  }
 }
 
 # ACTIONS for Signing Certificate
 
-elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail generate'})
-{
-  system( "$generate_signature &>$tmpdir/statusmail_log &" );
-}
-elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'export'})
-{
-  export_signing_key();
-}
-elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail show'})
+if (exists $cgiparams{'SIGN_ACTION'})
 {
   $show_signing_key = 1;
-}
-elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail hide'})
-{
-  $show_signing_key = 0;
+
+  if ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail generate'})
+  {
+    system( "$generate_signature &>$tmpdir/statusmail_log &" );
+  }
+  elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'export'})
+  {
+    export_signing_key();
+  }
+  elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail show'})
+  {
+    $show_signing_key = 1;
+  }
+  elsif ($cgiparams{'SIGN_ACTION'} eq $Lang::tr{'statusmail hide'})
+  {
+    $show_signing_key = 0;
+  }
 }
 
 # ACTIONS for Contacts
 
-elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'update'})
+if (exists $cgiparams{'CONTACT_ACTION'})
 {
-  if (not $cgiparams{'name'})
+  $show_contacts        = 1;
+
+  if ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'update'})
   {
-    $errormessage .= "<p>$Lang::tr{'statusmail no contact name'}</p>";
+    if (not $cgiparams{'name'})
+    {
+      $errormessage .= "<p>$Lang::tr{'statusmail no contact name'}</p>";
+    }
+
+    if (not General::validemail( $cgiparams{'address'} ))
+    {
+      $errormessage .= "<p>$Lang::tr{'statusmail email invalid'}</p>";
+    }
+
+    if (not $errormessage)
+    {
+      my $enable = $$contacts{$cgiparams{'name'}}{'enable'};
+
+      $$contacts{$cgiparams{'name'}} = { 'email'       => $cgiparams{'address'},
+                                        'keyid'       => '',
+                                        'fingerprint' => '',
+                                        'enable'      => $enable };
+      $save_contacts = 1;
+    }
   }
-
-  if (not General::validemail( $cgiparams{'address'} ))
+  elsif ($cgiparams{'CONTACT_ACTION'} eq 'edit contact')
   {
-    $errormessage .= "<p>$Lang::tr{'statusmail email invalid'}</p>";
+    $current_contact = $cgiparams{'KEY'};
   }
-
-  if (not $errormessage)
+  elsif ($cgiparams{'CONTACT_ACTION'} eq 'remove contact')
   {
-    my $enable = $$contacts{$cgiparams{'name'}}{'enable'};
+    my $key = $cgiparams{'KEY'};
 
-    $$contacts{$cgiparams{'name'}} = { 'email'       => $cgiparams{'address'},
-                                       'keyid'       => '',
-                                       'fingerprint' => '',
-                                       'enable'      => $enable };
+    delete $$contacts{$key};
     $save_contacts = 1;
   }
-}
-elsif ($cgiparams{'CONTACT_ACTION'} eq 'edit contact')
-{
-  $current_contact = $cgiparams{'KEY'};
-}
-elsif ($cgiparams{'CONTACT_ACTION'} eq 'remove contact')
-{
-  my $key = $cgiparams{'KEY'};
+  elsif ($cgiparams{'CONTACT_ACTION'} eq 'toggle contact')
+  {
+    my $key = $cgiparams{'KEY'};
 
-  delete $$contacts{$key};
-  $save_contacts = 1;
-}
-elsif ($cgiparams{'CONTACT_ACTION'} eq 'toggle contact')
-{
-  my $key = $cgiparams{'KEY'};
-
-  toggle_on_off( $$contacts{$key}{'enable'} );
-  $save_contacts = 1;
-}
-elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail show'})
-{
-  $show_contacts = 1;
-}
-elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail hide'})
-{
-  $show_contacts = 0;
+    toggle_on_off( $$contacts{$key}{'enable'} );
+    $save_contacts = 1;
+  }
+  elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail show'})
+  {
+    $show_contacts = 1;
+  }
+  elsif ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'statusmail hide'})
+  {
+    $show_contacts = 0;
+  }
 }
 
 # ACTIONS for Schedules
 
-elsif ($cgiparams{'SCHEDULE_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'SCHEDULE_ACTION'} eq $Lang::tr{'update'})
+if (exists $cgiparams{'SCHEDULE_ACTION'})
 {
-  check_schedule( %cgiparams );
-}
-elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'edit schedule')
-{
-  $current_schedule = $cgiparams{'KEY'};
-}
-elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'execute schedule')
-{
-  system( "$execute '$cgiparams{'KEY'}' &" );
-}
-elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'remove schedule')
-{
-  my $key = $cgiparams{'KEY'};
+  if ($cgiparams{'SCHEDULE_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'SCHEDULE_ACTION'} eq $Lang::tr{'update'})
+  {
+    check_schedule( %cgiparams );
+  }
+  elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'edit schedule')
+  {
+    $current_schedule = $cgiparams{'KEY'};
+  }
+  elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'execute schedule')
+  {
+    system( "$execute '$cgiparams{'KEY'}' &" );
+  }
+  elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'remove schedule')
+  {
+    my $key = $cgiparams{'KEY'};
 
-  delete $$schedules{$key};
-  $save_schedules = 1;
-}
-elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'toggle schedule')
-{
-  my $key = $cgiparams{'KEY'};
+    delete $$schedules{$key};
+    $save_schedules = 1;
+  }
+  elsif ($cgiparams{'SCHEDULE_ACTION'} eq 'toggle schedule')
+  {
+    my $key = $cgiparams{'KEY'};
 
-  toggle_on_off( $$schedules{$key}{'enable'} );
+    toggle_on_off( $$schedules{$key}{'enable'} );
 
-  $save_schedules = 1;
+    $save_schedules = 1;
+  }
 }
 
 ###############################################################################
@@ -339,7 +355,7 @@ Header::openpage($Lang::tr{'statusmail status emails'}, 1, '');
 
 if ($mailsettings{'USEMAIL'} ne 'on')
 {
-  $errormessage .= "<p>$Lang::tr{'statusmail email not enabled'}</p>";
+  $errormessage = "<p>$Lang::tr{'statusmail email not enabled'}</p>";
 }
 
 if ($errormessage)
@@ -496,6 +512,9 @@ END
 
   if ($show_signing_key)
   {
+    my $disabled = '';
+    $disabled = ' disabled' if ($sign_key =~ m/nothing exported/ or not $sign_key);
+
     print <<END
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <table width='100%' cellspacing='1'>
@@ -519,8 +538,8 @@ END
 <table width='100%'>
   <tr>
     <td align='right'>
-      <input type='submit' name='SIGN_ACTION' value='$Lang::tr{"export"}'>
-      <button onclick='copy_clipboard()'>$Lang::tr{'statusmail copy to clipboard'}</button>
+      <input type='submit' name='SIGN_ACTION' value='$Lang::tr{"export"}'$disabled>
+      <button onclick='copy_clipboard()'$disabled>$Lang::tr{'statusmail copy to clipboard'}</button>
       <input type='submit' name='SIGN_ACTION' value='$Lang::tr{"statusmail generate"}'>
     </td>
   </tr>
@@ -570,6 +589,15 @@ END
     # Selected key details and Import/Add buttons
 
     print <<END
+  <script>
+  function enable_file_import() {
+    /* Get the text field */
+    var importButton = document.getElementById( "file-import" );
+
+    /* Select the text field */
+    importButton.removeAttribute( 'disabled' );
+  }
+  </script>
   <form method='post' enctype='multipart/form-data' action='$ENV{'SCRIPT_NAME'}'>
     <table width='100%' cellspacing='1'>
       <tr>
@@ -585,10 +613,9 @@ $encryption_key
     <table width='100%'>
       <tr>
         <td align='right'>
-            <input type="file" size='50' name="UPLOAD" />
-            <input type='hidden' name='ACTION' value='restore' />
+            <input type="file" size='50' name="UPLOAD" onchange='enable_file_import()'/>
             <input type='hidden' name='FILE' />
-            <input type='submit' name='KEY_ACTION' value='$Lang::tr{'import'}' />
+            <input type='submit' name='KEY_ACTION' value='$Lang::tr{'statusmail import'}' id='file-import' disabled />
             <input type='submit' name='KEY_ACTION' value='$Lang::tr{"add"}' />
         </td>
       </tr>
@@ -624,8 +651,8 @@ END
         print "<tr bgcolor='$colour{'color22'}'>";
       }
 
-      my $name  = $keys{$fingerprint}{'userid'};
-      my $email = $keys{$fingerprint}{'email'};
+      my $name  = Header::escape( $keys{$fingerprint}{'userid'} );
+      my $email = Header::escape( $keys{$fingerprint}{'email'} );
 
     print <<END
   <td align='center'>$name</td>
@@ -665,8 +692,8 @@ END
 
 sub show_contacts()
 {
-  my $button          = $Lang::tr{'add'};
   my $current_address = '';
+  my $name            = '';
   my $keyid           = '';
   my $enable          = 0;
 
@@ -696,13 +723,16 @@ END
   {
     # Selected contact details and Import/Add buttons
 
+    $button = $Lang::tr{'add'};
+
     if ($current_contact)
     {
-      $button          = $Lang::tr{'update'};
+      $button = $Lang::tr{'update'};
 
       if (exists $$contacts{$current_contact})
       {
-        $current_address = $$contacts{$current_contact}{'email'};
+        $name            = Header::escape( $current_contact );
+        $current_address = Header::escape( $$contacts{$current_contact}{'email'} );
         $keyid           = $$contacts{$current_contact}{'keyid'};
       }
     }
@@ -713,7 +743,7 @@ END
       <tr>
         <td width='15%'>$Lang::tr{'statusmail contact name'}</td>
         <td>
-          <input type='text' name='name' value='$current_address'>
+          <input type='text' name='name' value='$name'>
         </td>
         <td>$Lang::tr{'statusmail email'}</td>
         <td>
@@ -790,9 +820,12 @@ END
         $gdesc = $Lang::tr{'click to enable'};
       }
 
+    $name       = Header::escape( $contact );
+    my $address = Header::escape( $$contacts{$contact}{'email'} );
+
       print <<END
-  <td align='center'>$contact</td>
-  <td align='center'>$$contacts{$contact}{'email'}</td>
+  <td align='center'>$name</td>
+  <td align='center'>$address</td>
   <td align='center'>$$contacts{$contact}{'keyid'}</td>
 
   <td align='center'>
@@ -864,6 +897,9 @@ sub show_schedules()
     }
   }
 
+  my $name    = Header::escape( $current_schedule );
+  my $subject = Header::escape( $schedule{'subject'} );
+
   # Selected schedule - email information
 
   print <<END
@@ -872,13 +908,13 @@ sub show_schedules()
     <tr>
       <td width='15%'>$Lang::tr{'statusmail schedule name'}</td>
       <td colspan='3'>
-        <input type='text' name='name' value='$current_schedule' size='80'>
+        <input type='text' name='name' value='$name' size='80'>
       </td>
     </tr>
     <tr>
       <td>$Lang::tr{'statusmail email subject'}</td>
       <td colspan='3'>
-        <input type='text' name='subject' value='$schedule{'subject'}' size='80'>
+        <input type='text' name='subject' value='$subject' size='80'>
       </td>
     </tr>
     <tr>
@@ -892,8 +928,9 @@ END
   {
     my $select = '';
     $select    = ' selected' if ($schedule{'email'} =~ m/$contact/);
+    $name      = Header::escape( $contact );
 
-    print "<option value='$contact'$select>$contact</option>\n";
+    print "<option value='$name'$select>$name</option>\n";
   }
 
   my $select_html   = $schedule{'format'}      ne 'text'   ? ' selected' : '';
@@ -1069,7 +1106,7 @@ END
           $hidden = ' hidden';
         }
 
-        $checked = ' checked' if ($schedule{"enable_${name}"} eq 'on');
+        $checked = ' checked' if (exists $schedule{"enable_${name}"} and $schedule{"enable_${name}"} eq 'on');
 
         print "<tr class='$class'$hidden><td><span style='padding-left: 40px; line-height: 2.2'>$item</span></td>\n";
         print "<td><input type='checkbox' name='enable_${name}'$checked></td>\n";
@@ -1147,9 +1184,10 @@ END
   my $row = 0;
   foreach my $schedule (sort keys %$schedules)
   {
-    my $col = '';
+    my $col   = '';
     my $gif;
     my $gdesc;
+    $name     = Header::escape( $schedule );
 
     if ($current_contact eq $schedule)
     {
@@ -1176,7 +1214,7 @@ END
     }
 
     print <<END
-  <td>$schedule</td>
+  <td>$name</td>
 
   <td align='center'>
   <form method='post' action='$ENV{'SCRIPT_NAME'}'>

@@ -4,7 +4,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -16,12 +16,14 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
 use strict;
 use warnings;
+
+use lib "/usr/lib/statusmail";
 
 use Time::Local;
 
@@ -31,7 +33,7 @@ require "${General::swroot}/lang.pl";
 # Variables
 
 my $testdir    = '/var/ipfire/statusmail/test';
-my $stylesheet = '/var/ipfire/statusmail/stylesheet.css';
+my $stylesheet = '/usr/lib/statusmail/stylesheet.css';
 my %items;
 our $plugin;
 
@@ -56,6 +58,15 @@ sub get_period;
 
 # Main function
 
+unless (@ARGV)
+{
+  print "Usage: $0 path_to_plugin...\n";
+  print "Tests statusmail plugins.  Should be given the pathnames to one or more plugins\n";
+  print "Asks for some general parameters and then for the optional parameters for the\n";
+  print "plugins.  Output is generated in a local file.\n";
+  exit;
+}
+
 foreach $plugin (@ARGV)
 {
   if (-e $plugin)
@@ -76,9 +87,9 @@ if (not %items)
 
 mkdir $testdir unless (-d $testdir);
 
-# Ask for options
+# Ask for message format
 
-my $format       = choices( 'Message format', 'html', 'text' );
+my $format = choices( 'Message format', 'html', 'text' );
 
 # Create message
 
@@ -88,7 +99,7 @@ get_period ( $message );
 
 $message->{'max_lines_per_item'} = integer( 'Maximum lines per item', 1, 1000 );
 
-# Loop through the various log items
+# Loop through the various items
 
 foreach my $section ( sort keys %items )
 {
@@ -408,11 +419,23 @@ sub get_period
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
+# Package TestStatusMail
+#
+# This package is used to override some of the functionality of the StatusMail
+# and EncryptedMail packages.
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 
 package TestStatusMail;
 
 use base qw/StatusMail/;
+
+#------------------------------------------------------------------------------
+# sub print( directory )
+#
+# Prints the plugin(s) output to the specified directory.
+#------------------------------------------------------------------------------
 
 sub print( $$ )
 {
@@ -444,6 +467,13 @@ sub print( $$ )
 
   print "Output is in $file\n";
 }
+
+
+#------------------------------------------------------------------------------
+# sub add_image( params )
+#
+# Outputs an image as a file.
+#------------------------------------------------------------------------------
 
 sub add_image
 {

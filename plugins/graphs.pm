@@ -6,7 +6,7 @@
 #                                                                          #
 # This is free software; you can redistribute it and/or modify             #
 # it under the terms of the GNU General Public License as published by     #
-# the Free Software Foundation; either version 2 of the License, or        #
+# the Free Software Foundation; either version 3 of the License, or        #
 # (at your option) any later version.                                      #
 #                                                                          #
 # This is distributed in the hope that it will be useful,                  #
@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2018                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -39,7 +39,10 @@ sub add_graph( $$$$@ );
 ############################################################################
 # BEGIN Block
 #
-# Register the log items available in this file
+# Register the graphs available in this file.
+#
+# Note that some graphs are only available under certain circumstances, so
+# it's necessary to check the circumstances apply.
 ############################################################################
 
 sub BEGIN
@@ -61,6 +64,7 @@ sub BEGIN
                                                          "$Lang::tr{'week'}:week",
                                                          "$Lang::tr{'year'}:year" ] } );
 
+  #----------------------------------------------------------------------------
   # Network
 
   if ($netsettings{'RED_TYPE'} ne 'PPPOE')
@@ -145,6 +149,7 @@ sub BEGIN
                        'item'        => $Lang::tr{'firewallhits'},
                        'function'    => \&fw_hits );
 
+  #----------------------------------------------------------------------------
   # System
 
   main::add_mail_item( %common_options,
@@ -174,6 +179,7 @@ sub BEGIN
                        'item'        => $Lang::tr{'entropy'},
                        'function'    => \&entropy );
 
+  #----------------------------------------------------------------------------
   # Hardware
 
   main::add_mail_item( %common_options,
@@ -232,6 +238,7 @@ sub BEGIN
                        'item'        => $Lang::tr{'swap'},
                        'function'    => \&swap );
 
+  #----------------------------------------------------------------------------
   # Disks
 
   foreach my $path (glob '/var/log/rrd/collectd/localhost/disk*')
@@ -251,6 +258,7 @@ sub BEGIN
                          'function'    => sub { my ($this, $period) = @_; disktemp( $this, $name, $period ); } );
   }
 
+# Other graphs that aren't available.
 # 	updatepinggraph( host, period )                                     : netother.cgi
 # 	updateprocessescpugraph( period )
 # 	updateprocessesmemorygraph( period )

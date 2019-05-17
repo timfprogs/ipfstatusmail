@@ -18,7 +18,7 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
@@ -44,6 +44,18 @@ sub processes( $$ );
 
 sub BEGIN
 {
+  my @users;
+
+  open PASSWD, '<', '/etc/passwd' or return;
+
+  foreach my $line (<PASSWD>)
+  {
+    my ($user) = $line =~ m/^(\w+):/;
+    push @users, $user if ($user);
+  }
+
+  close PASSWD;
+
   main::add_mail_item( 'ident'      => 'system-status-processes',
                        'section'    => $Lang::tr{'system'},
                        'subsection' => $Lang::tr{'status'},
@@ -51,7 +63,7 @@ sub BEGIN
                        'function'   => \&processes,
                        'option'     => { 'type'   => 'select',
                                          'name'   => $Lang::tr{'user'},
-                                         'values' => [ $Lang::tr{'statusmail system ps any'}, 'root', 'nobody', 'squid' ] } );
+                                         'values' => [ $Lang::tr{'statusmail system ps any'}, sort @users ] } );
 }
 
 ############################################################################
@@ -70,9 +82,8 @@ sub BEGIN
 
 sub processes( $$ )
 {
-  my $message = shift;
-  my $user    = shift;
-  my $cmd     = '';
+  my ($message, $user) = @_;
+  my $cmd              = '';
   my @lines;
 
   use Sort::Naturally;
