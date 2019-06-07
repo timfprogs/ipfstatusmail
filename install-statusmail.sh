@@ -101,5 +101,8 @@ rm -f /usr/lib/statusmail/plugins/services_intrusion_detection_system.pm
 
 if [[ -e /etc/fcron.hourly/statusmail.sh ]]; then
   rm /etc/fcron.hourly/statusmail.sh
+fi
+
+if [[ ! -e /etc/fcron.hourly/statusmail ]]; then
   ln -fs /usr/lib/statusmail/statusmail.sh /etc/fcron.hourly/statusmail
 fi

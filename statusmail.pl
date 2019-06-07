@@ -231,7 +231,7 @@ sub execute_schedule( $$ )
   }
 
   $message->calculate_period( $$schedule{'period-value'}, $$schedule{'period-unit'} );
-  
+
   $message->add_text( "$Lang::tr{'statusmail period from'} " . localtime( $message->get_period_start ) .
                       " $Lang::tr{'statusmail period to'} " . localtime( $message->get_period_end ) . "\n" );
 
@@ -285,7 +285,7 @@ sub execute_schedule( $$ )
 
   if ($status > 0)
   {
-    debug 1, "Send mail message";
+    log_message LOG_INFO, "Send mail message for '$$schedule{'subject'}' to " . join ',', @contacts;
     $message->send;
   }
 }

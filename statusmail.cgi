@@ -23,9 +23,9 @@
 
 # Enable the following only for debugging
 use strict;
-use warnings;
+#use warnings;
 use CGI qw/:standard/;
-use CGI::Carp 'fatalsToBrowser';
+#use CGI::Carp 'fatalsToBrowser';
 
 use IPC::Open3;
 use Data::Dumper;
@@ -252,7 +252,7 @@ if (exists $cgiparams{'SIGN_ACTION'})
 
 if (exists $cgiparams{'CONTACT_ACTION'})
 {
-  $show_contacts        = 1;
+  $show_contacts = 1;
 
   if ($cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'add'} or $cgiparams{'CONTACT_ACTION'} eq $Lang::tr{'update'})
   {
@@ -616,7 +616,7 @@ $encryption_key
             <input type="file" size='50' name="UPLOAD" onchange='enable_file_import()'/>
             <input type='hidden' name='FILE' />
             <input type='submit' name='KEY_ACTION' value='$Lang::tr{'statusmail import'}' id='file-import' disabled />
-            <input type='submit' name='KEY_ACTION' value='$Lang::tr{"add"}' />
+            <input type='submit' name='KEY_ACTION' value='$Lang::tr{'add'}' />
         </td>
       </tr>
     </table>
@@ -722,7 +722,7 @@ END
   if ($show_contacts)
   {
     # Selected contact details and Import/Add buttons
-    
+
     $button = $Lang::tr{'add'};
 
     if ($current_contact)
@@ -1298,9 +1298,13 @@ sub check_key( $ )
 
   waitpid( $childpid, 0);
 
+  my $message = <$out>;
+
+  close $out;
+
   if ($?)
   {
-    $errormessage .= join '<br>', "<p>$Lang::tr{'statusmail import key failed'}", <$out>, "</p>\n";
+    $errormessage .= join '<br>', "<p>$Lang::tr{'statusmail import key failed'}: $message</p>\n";
   }
 }
 
@@ -1323,7 +1327,7 @@ sub get_keys()
   my $keyid       = '';
   my $userid      = '';
   my $email       = '';
-  my $expires     = 0;
+  my $expires     = ' ';
   my $fingerprint = '';
   my $use         = '';
 
@@ -1338,7 +1342,7 @@ sub get_keys()
       $keyid       = '';
       $userid      = '';
       $email       = '';
-      $expires     = 0;
+      $expires     = ' ';
       $fingerprint = '';
       $use         = '';
     }
@@ -1353,7 +1357,7 @@ sub get_keys()
       # Key that can be used for encryption
 
       $userid  = $fields[9] if ($fields[9]);
-      $expires = $fields[6];
+      $expires = $fields[6] if ($fields[6]);
       $keyid   = $fields[4];
       $use     = $fields[11];
     }
