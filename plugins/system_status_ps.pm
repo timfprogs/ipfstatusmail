@@ -124,9 +124,11 @@ sub processes( $$ )
   {
     $message->add_title( $Lang::tr{'processes'} );
     $message->add_table( @sorted );
+
+    return 1;
   }
 
-  return 1;
+  return 0;
 }
 
 1;
