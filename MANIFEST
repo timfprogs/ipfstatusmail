@@ -27,7 +27,7 @@ plugins/services_ids_update.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_intrusion_prevention_system.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_urlfilter.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_kernel.pm /usr/lib/statusmail nobody.nobody 0644
-plugins/system_packfire.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/system_pakfire.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_ssh.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_status_ps.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_status_services.pm /usr/lib/statusmail nobody.nobody 0644
