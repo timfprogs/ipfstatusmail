@@ -60,7 +60,7 @@
 'statusmail firewall min count' => 'Minimum count',
 'statusmail firewall reason' => 'Reason',
 'statusmail period' => 'Period',
-'statusmail ips alerts' => 'Alerts',
+'statusmail alerts' => 'Alerts',
 'statusmail ips alert' => 'Alert',
 'statusmail ips min priority' => 'Minimum priority',
 'statusmail logins' => 'Logins',
@@ -95,5 +95,9 @@
 'statusmail period from' => 'From',
 'statusmail period to' => 'to',
 'statusmail show' => 'Show',
-'statusmail hide' => 'Hide'
+'statusmail hide' => 'Hide',
+'statusmail queued' => 'Queued',
+'statusmail sent' => 'Sent',
+'statusmail retries' => 'Retries',
+'statusmail changes' => 'Changes'
 );

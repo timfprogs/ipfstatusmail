@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -33,7 +33,7 @@ package System_Status_Ps;
 # Function prototypes
 ############################################################################
 
-sub processes( $$ );
+sub processes( $$$ );
 
 
 ############################################################################
@@ -71,19 +71,20 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub processes( this, user )
+# sub processes( this, param, user )
 #
 # Adds the current status of the system processes
 #
 # Parameters:
 #   this  message object
+#   param dummy parameter
 #   user  user to show processes for or 'any' for all users
 #------------------------------------------------------------------------------
 
-sub processes( $$ )
+sub processes( $$$ )
 {
-  my ($message, $user) = @_;
-  my $cmd              = '';
+  my ($message, $param, $user) = @_;
+  my $cmd                      = '';
   my @lines;
 
   use Sort::Naturally;
@@ -123,6 +124,7 @@ sub processes( $$ )
   if (@sorted > 2)
   {
     $message->add_title( $Lang::tr{'processes'} );
+    $message->enable_line_limit( 0 );
     $message->add_table( @sorted );
 
     return 1;

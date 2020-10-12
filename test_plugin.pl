@@ -32,7 +32,7 @@ require "${General::swroot}/lang.pl";
 
 # Variables
 
-my $testdir    = '/var/ipfire/statusmail/test';
+my $testdir    = '/var/tmp/statusmail';
 my $stylesheet = '/usr/lib/statusmail/stylesheet.css';
 my %items;
 our $plugin;
@@ -119,6 +119,7 @@ foreach my $section ( sort keys %items )
         $message->add_title( $item );
 
         my $function = $items{$section}{$subsection}{$item}{'function'};
+        my $param    = $items{$section}{$subsection}{$item}{'param'};
 
         if (exists $items{$section}{$subsection}{$item}{'option'})
         {
@@ -127,7 +128,7 @@ foreach my $section ( sort keys %items )
             my $option = choices( $items{$section}{$subsection}{$item}{'option'}{'name'},
                                   @{$items{$section}{$subsection}{$item}{'option'}{'values'} } );
 
-            &$function( $message, $option );
+            &$function( $message, $param, $option );
           }
           else
           {
@@ -135,12 +136,12 @@ foreach my $section ( sort keys %items )
                                  $items{$section}{$subsection}{$item}{'option'}{'min'},
                                  $items{$section}{$subsection}{$item}{'option'}{'max'} );
 
-            &$function( $message, $value );
+            &$function( $message, $param, $value );
           }
         }
         else
         {
-          &$function( $message );
+          &$function( $message, $param );
         }
       }
     }
@@ -377,8 +378,12 @@ sub add_mail_item( @ )
 
   $params{'format'} = 'both' unless (exists $params{'format'});
 
-  $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'function' => $params{'function'},
-                                                                         'format'   => $params{'format'} };
+  $params{'param'} = '' unless (exists $params{'param'} );
+
+  $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'format'   => $params{'format'},
+                                                                         'ident'    => $params{'ident'},
+                                                                         'function' => $params{'function'},
+                                                                         'param'    => $params{'param'} };
 
   if ($params{'option'})
   {
@@ -386,14 +391,14 @@ sub add_mail_item( @ )
     {
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'}   = $params{'option'}{'type'};
       $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'values'} = $params{'option'}{'values'};
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'} = $params{'option'}{'name'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'}   = $params{'option'}{'name'};
     }
     elsif ($params{'option'}{'type'} eq 'integer')
     {
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'} = $params{'option'}{'type'};
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'min'}  = $params{'option'}{'min'};
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'max'}  = $params{'option'}{'max'};
-      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'} = $params{'option'}{'name'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'type'}   = $params{'option'}{'type'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'min'}    = $params{'option'}{'min'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'max'}    = $params{'option'}{'max'};
+      $items{$params{'section'}}{$params{'subsection'}}{$params{'item'}}{'option'}{'name'}   = $params{'option'}{'name'};
     }
   }
 }
@@ -511,7 +516,7 @@ sub add_image
   $image_name .= '.gif' if ($params{'type'} eq 'image/gif');
   $image_name .= '.png' if ($params{'type'} eq 'image/png');
 
-  open OUT, '>', "test/$image_name" or die "Can't open image file $image_name: $!";
+  open OUT, '>', "$testdir/$image_name" or die "Can't open image file $image_name: $!";
   binmode( OUT );
 
   if (exists $params{fh})

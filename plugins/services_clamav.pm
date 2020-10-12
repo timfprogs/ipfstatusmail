@@ -18,16 +18,16 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
+use strict;
+#use warnings;
+
 require "${General::swroot}/lang.pl";
 
-use strict;
-use warnings;
-
-package Services_Calmav;
+package Services_Clamav;
 
 use Time::Local;
 
@@ -42,16 +42,16 @@ sub BEGIN
   if ( -e "/var/run/clamav/clamd.pid" )
   {
     main::add_mail_item( 'ident'      => 'services-clamav-alerts',
-                         'section'    => $Lang::tr{'services'},
-                         'subsection' => 'Clam AV',
-                         'item'       => $Lang::tr{'statusmail ids alerts'},,
-                         'function'   => \&alerts );
+                          'section'    => $Lang::tr{'services'},
+                          'subsection' => 'Clam AV',
+                          'item'       => $Lang::tr{'statusmail alerts'},,
+                          'function'   => \&alerts );
 
     main::add_mail_item( 'ident'      => 'services-clamav-updates',
-                         'section'    => $Lang::tr{'services'},
-                         'subsection' => 'Clam AV',
-                         'item'       => $Lang::tr{'updates'},
-                         'function'   => \&updates );
+                          'section'    => $Lang::tr{'services'},
+                          'subsection' => 'Clam AV',
+                          'item'       => $Lang::tr{'updates'},
+                          'function'   => \&updates );
   }
 }
 
@@ -107,23 +107,24 @@ sub get_log( $ )
 }
 
 #------------------------------------------------------------------------------
-# sub alerts( this, min_count )
+# sub alerts( this, param, min_count )
 #
 # Outputs information on detected viruses etc.
 #
 # Parameters:
 #   this       message object
+#   param      dummy parameter
 #   min_count  only output information if it occurs at least this many times.
 #------------------------------------------------------------------------------
 
-sub alerts( $$ )
+sub alerts( $$$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self, $param, $min_count) = @_;
   my @table;
 
   use Sort::Naturally;
 
-  push @table, [ $Lang::tr{'statusmail ids alert'}, $Lang::tr{'count'} ];
+  push @table, [ $Lang::tr{'statusmail alert'}, $Lang::tr{'count'} ];
 
   my $info = get_log( $self );
 

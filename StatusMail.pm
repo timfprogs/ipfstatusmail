@@ -31,6 +31,9 @@ package StatusMail;
 
 use base qw/EncryptedMail/;
 
+require "/var/ipfire/general-functions.pl";
+require "${General::swroot}/location-functions.pl";
+
 ############################################################################
 # Constants
 ############################################################################
@@ -48,21 +51,26 @@ use constant { SEC    => 0,
 
 use constant MONTHS => qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
-use constant LOGNAME => '/var/log/messages';
+use constant LOGDIR => '/var/log/';
 
 ############################################################################
 # Configuration variables
 ############################################################################
 
-my @monthnames = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
-                  'Sep', 'Oct', 'Nov', 'Dec');
+my @monthnames    = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
 my %months;
+
+my $max_log_weeks = 52;
 
 ############################################################################
 # Variables
 ############################################################################
 
 my %address_lookup_cache;
+my @net_addr;
+my @net_mask;
+my @net_name;
 
 ############################################################################
 # Function prototypes
@@ -101,10 +109,9 @@ sub new
 
   my $self = $class->SUPER::new( @_ );
 
+  $self->{last_when} = 0;
   $self->{last_time} = 0;
-  $self->{last_mon}  = 0;
-  $self->{last_day}  = 0;
-  $self->{last_hour} = 0;
+  $self->{loc}       = Location::Functions::init();
 
   bless( $self, $class );
 
@@ -133,7 +140,8 @@ sub calculate_period( $$ )
   my @end_time      = ();
   my $weeks_covered = 0;
 
-  @end_time = localtime();
+  my @now        = localtime();
+  @end_time      = @now;
 
   $end_time[SEC] = 0;
   $end_time[MIN] = 0;
@@ -183,14 +191,14 @@ sub calculate_period( $$ )
   my $week_start = $start_time - ($start_time[WDAY] * 86400) - ($start_time[HOUR] * 3600) + 3600;
   $weeks_covered = int( (time() - $week_start) / (86400 * 7) );
 
-  $self->{'start_time_array'} = \@start_time;
-  $self->{'start_time'}       = $start_time;
-  $self->{'end_time_array'}   = \@end_time;
-  $self->{'end_time'}         = $end_time;
-  $self->{'weeks_covered'}    = $weeks_covered;
-  $self->{'period'}           = "$value$unit";
-  $self->{'period'}           =~ s/s$//;
-  $self->{'total_days'}       = ($end_time - $start_time) / 86400;
+  $self->{start_time_array} = \@start_time;
+  $self->{start_time}       = $start_time;
+  $self->{end_time_array}   = \@end_time;
+  $self->{end_time}         = $end_time;
+  $self->{weeks_covered}    = $weeks_covered;
+  $self->{period}           = "$value$unit";
+  $self->{period}           =~ s/s$//;
+  $self->{total_days}       = ($end_time - $start_time) / 86400;
 }
 
 
@@ -295,165 +303,208 @@ sub clear_cache()
 
 
 #------------------------------------------------------------------------------
-# sub get_message_log_line()
+# sub get_message_log_line( logfile, cache )
 #
 # Gets the next line from the message log.
-# Will cache log entries if the period covered is short.
+# Will cache log entries if the period covered is short and cache is true.
 #------------------------------------------------------------------------------
 
 sub get_message_log_line
 {
-  my $self = shift;
+  my ($self, $logfile, $cache) = (@_, 1);
   my $line;
 
-  if (exists $self->{logindex})
+  if (exists $self->{$logfile}{logindex})
   {
     # Reading from the cache
 
-    if ($self->{logindex} < @{ $self->{logcache} })
+    if ($self->{$logfile}{logindex} < @{ $self->{$logfile}{logcache} })
     {
-      return $self->{logcache}[$self->{logindex}++];
+      return $self->{$logfile}{logcache}[$self->{$logfile}{logindex}++];
     }
     else
     {
       # End of cache - reset to start again on next call
 
-      $self->{logindex} = 0;
+      $self->{$logfile}{logindex} = 0;
       return undef;
     }
   }
 
-  $self->{logfile} = $self->{'weeks_covered'} if (not exists $self->{logfile} or $self->{logfile} < 0);
+  # No cache - read from log file
+
+  if (not exists $self->{$logfile}{logfile} or $self->{$logfile}{logfile} < -1)
+  {
+    # First time reading
+    $self->{$logfile}{logfile}  = $max_log_weeks;
+    $self->{$logfile}{logcache} = [];
+  }
 
   LINE:
   while (1)
   {
-    if (not exists $self->{fh} or (exists $self->{fh} and eof $self->{fh}))
+    unless (exists $self->{fh})
     {
-      # Reading from a file and need to open a file
+      # Need to open a new file
 
       FILE:
-      while ($self->{logfile} >= 0)
+      while ($self->{$logfile}{logfile} > -1)
       {
-        my $name = $self->{logfile} < 1 ? LOGNAME : LOGNAME . '.' . $self->{logfile};
-        $self->{logfile}--;
+        my $name = LOGDIR . $logfile;
+
+        $name .= ".$self->{$logfile}{logfile}" if ($self->{$logfile}{logfile} > 0);
+        $self->{$logfile}{logfile}--;
 
         if (-r $name)
         {
           # Not compressed
 
-          open $self->{fh}, '<', $name or die "Can't open $name: $!";
-          $self->{year} = (localtime( (stat(_))[9] ))[YEAR];
+          my $mtime = (stat( $name ))[9];
+          next if ($mtime < $self->{start_time});
+
+          open $self->{fh}, '<', $name or next FILE;
+          $self->{year} = (localtime( $mtime ))[YEAR];
           last FILE;
         }
         elsif (-r "$name.gz")
         {
-          # Compressed
+          # Compressed with Gzip
 
-          open $self->{fh}, "gzip -dc $name.gz |" or next;
-          $self->{year} = (localtime( (stat(_))[9] ))[YEAR];
+          my $mtime = (stat( "$name.gz" ))[9];
+          next if ($mtime < $self->{start_time});
+
+          open $self->{fh}, "gzip -dc $name.gz |" or next FILE;
+          $self->{year} = (localtime( $mtime ))[YEAR];
+          last FILE;
+        }
+        elsif (-r "$name.xz")
+        {
+          # Compressed with XZ
+
+          my $mtime = (stat( "$name.xz" ))[9];
+          next if ($mtime < $self->{start_time});
+
+          open $self->{fh}, "xz -dc $name.xz |" or next FILE;
+          $self->{year} = (localtime( $mtime ))[YEAR];
           last FILE;
         }
 
         # Not found - go back for next file
-      }
 
-      if ($self->{logfile} < -1)
-      {
-        # No further files - reset to start again on next call
-
-        delete $self->{fh};
-        return undef;
+        next FILE;
       }
     }
 
-    if (exists $self->{fh})
+    unless (defined $self->{fh})
     {
-      # Reading from a file
+      # No further files - reset to start again on next call
 
-      $line = readline $self->{fh};
+      delete $self->{fh};
 
-      if (eof $self->{fh})
-      {
-        if ($self->{logfile} < 0)
-        {
-          # No further files - reset to start again on next call
+      $self->{$logfile}{logfile}  = $max_log_weeks;
+      $self->{$logfile}{logindex} = 0 if ($self->{'total_days'} <= 2 and $cache);
 
-          delete $self->{fh};
-          return undef;
-        }
-        # Go back for next file
-
-        close $self->{fh};
-        next LINE;
-      }
-
-      my ($mon, $day, $hour) = unpack 'Lsxs', $line;
-
-      if ($mon != $self->{last_mon} or $day != $self->{last_day} or $hour != $self->{last_hour})
-      {
-        # Hour, day or month changed.  Convert to unix time so we can work out
-        # whether the message time falls between the limits we're interested in.
-        # This is complicated by the lack of a year in the logged information,
-        # so assume the current year, and adjust if necessary.
-
-        my @time;
-
-        $time[YEAR] = $self->{year};
-
-        ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
-        $time[MON] = $months{$time[MON]};
-
-        $self->{time} = timelocal( @time );
-
-        if ($self->{time} > time())
-        {
-          # We can't have times in the future, so this must be the previous year.
-
-          $self->{year}--;
-          $time[YEAR]--;
-          $self->{time} = timelocal( @time );
-          $self->{last_time} = $self->{time};
-        }
-        elsif ($self->{time} < $self->{last_time})
-        {
-          # Time should be increasing, so we must have gone over a year boundary.
-
-          $self->{year}++;
-          $time[YEAR]++;
-          $self->{time}      = timelocal( @time );
-          $self->{last_time} = $self->{time};
-        }
-
-        ($self->{last_mon}, $self->{last_day}, $self->{last_hour}) = ($mon, $day, $hour);
-      }
-
-      # Check to see if we're within the specified limits.
-      # Note that the minutes and seconds may be incorrect, but since we only deal
-      # in hour boundaries this doesn't matter.
-
-      next LINE if ($self->{time} < $self->{start_time});
-
-      if ($self->{time} > $self->{end_time})
-      {
-        # After end time - reset to start again on next call
-
-        close $self->{fh};
-        delete $self->{fh};
-        $self->{logfile} = $self->{'weeks_covered'};
-
-        return undef;
-      }
-
-      # Cache the entry if the time covered is less than two days
-
-      push @{$self->{logcache}}, $line if ($self->{'total_days'} <= 2);
-
-      return $line;
+      return undef;
     }
+
+    # Reading from a file
+
+    $line = readline $self->{fh};
+
+    unless (defined $line)
+    {
+      # End of file
+
+      close  $self->{fh};
+      delete $self->{fh};
+
+      next LINE;
+    }
+
+    next LINE unless ($line);
+
+    my $log_time = $self->_get_log_time( $line );
+
+    # Check to see if we're within the specified limits.
+    # Note that the minutes and seconds may be incorrect, but since we only deal
+    # in hour boundaries this doesn't matter.
+
+    next LINE if ($log_time < $self->{start_time}); # Earlier - ignore
+
+    if ($log_time > $self->{end_time})
+    {
+      # After end time - reset to start again on next call
+
+      close $self->{fh};
+      delete $self->{fh};
+      $self->{$logfile}{logfile}  = $max_log_weeks;
+      $self->{$logfile}{logindex} = 0 if ($self->{'total_days'} <= 2 and $cache);
+
+      return undef;
+    }
+
+    # Cache the entry if the time covered is two days or less
+
+    push @{$self->{$logfile}{logcache}}, $line if ($self->{'total_days'} <= 2);
+
+    return $line;
   }
 
   return $line;
+}
+
+
+#------------------------------------------------------------------------------
+# sub _get_log_time( line )
+#
+# Returns the time of a log message
+#------------------------------------------------------------------------------
+
+sub _get_log_time
+{
+  my ($self, $line) = @_;
+
+  my ($when) = substr $line, 0, 15;
+
+  if ($when ne $self->{last_when})
+  {
+    # Date changed.  Convert to unix time so we can work out whether the
+    # message time falls between the limits we're interested in.
+    # This is complicated by the lack of a year in the logged information,
+    # so assume the current year, and adjust if necessary.
+
+    my @time;
+
+    $time[YEAR] = $self->{year};
+
+    ($time[MON], $time[MDAY], $time[HOUR], $time[MIN], $time[SEC]) = split /[\s:]+/, $line;
+    $time[MON] = $months{$time[MON]};
+
+    $self->{time} = timelocal( @time );
+
+    if ($self->{time} > time())
+    {
+      # We can't have times in the future, so this must be the previous year.
+
+      $self->{year}--;
+      $time[YEAR]--;
+      $self->{time} = timelocal( @time );
+      $self->{last_time} = $self->{time};
+    }
+    elsif ($self->{time} < $self->{last_time})
+    {
+      # Time should be increasing, so we must have gone over a year boundary.
+
+      $self->{year}++;
+      $time[YEAR]++;
+      $self->{time}      = timelocal( @time );
+      $self->{last_time} = $self->{time};
+    }
+
+    $self->{last_when} = $when;
+  }
+
+  return $self->{time};
 }
 
 
@@ -512,19 +563,157 @@ sub set_host_name( $$$ )
 sub split_string( $$$ )
 {
   my ($self, $string, $size) = @_;
-  
+
   my $out = '';
-    
+
   while (length $string > $size)
   {
     $string =~ s/(.{$size,}?)\s+//;
     last unless ($1);
     $out .= $1 . "\n";
   }
-  
+
   $out .= $string;
 
   return $out;
+}
+
+
+#------------------------------------------------------------------------------
+# sub ip_to_country( ip_address )
+#
+# Converts an IP address string into a country or network type
+#------------------------------------------------------------------------------
+
+sub ip_to_country( $$ )
+{
+  my ($self, $ip_address) = @_;
+
+  my $country = Location::Functions::lookup_country_code( $self->{loc}, $ip_address );
+
+  return $country if ($country);
+
+  _get_networks() unless ( @net_addr );
+
+  for (my $i = 0 ; $i < @net_addr ; $i++)
+  {
+    return $net_name[$i] if (General::IpInSubnet( $ip_address, $net_addr[$i], $net_mask[$i] ) );
+  }
+
+  # If all else failes, convert to /24 network
+
+  $ip_address =~ s|\d+$|0/24|;
+
+  return $ip_address;
+}
+
+#------------------------------------------------------------------------------
+# sub _get_networks()
+#
+# Makes a list of networks
+#------------------------------------------------------------------------------
+
+sub _get_networks( $$ )
+{
+  my %nets;
+
+  # Define local networks
+
+  General::readhash("${General::swroot}/ethernet/settings", \%nets);
+
+  if (exists $nets{GREEN_ADDRESS})
+  {
+    push @net_addr, $nets{GREEN_ADDRESS};
+    push @net_mask, $nets{GREEN_NETMASK};
+    push @net_name, $Lang::tr{'green'}
+  }
+
+  if (exists $nets{BLUE_ADDRESS})
+  {
+    push @net_addr, $nets{BLUE_ADDRESS};
+    push @net_mask, $nets{BLUE_NETMASK};
+    push @net_name, $Lang::tr{'blue'}
+  }
+
+  if (exists $nets{ORANGE_ADDRESS})
+  {
+    push @net_addr, $nets{ORANGE_ADDRESS};
+    push @net_mask, $nets{ORANGE_NETMASK};
+    push @net_name, $Lang::tr{'orange'}
+  }
+
+  # Define RFC 791 special address blocks
+
+#  For some reason the current network check doesn't work
+  push @net_addr, "0.0.0.0";         push @net_mask, "255.0.0.0";       push @net_name, "CURRENT NETWORK";
+  push @net_addr, "10.0.0.0";        push @net_mask, "255.0.0.0";       push @net_name, "PRIVATE";
+  push @net_addr, "100.64.0.0";      push @net_mask, "255.192.0.0";     push @net_name, "CARRIER SHARED";
+  push @net_addr, "127.0.0.0";       push @net_mask, "255.0.0.0";       push @net_name, "LOOPBACK";
+  push @net_addr, "169.254.0.0";     push @net_mask, "255.255.0.0";     push @net_name, "LINK LOCAL";
+  push @net_addr, "172.16.0.0";      push @net_mask, "255.240.0.0";     push @net_name, "PRIVATE";
+  push @net_addr, "192.0.0.0";       push @net_mask, "255.255.255.0";   push @net_name, "IETF PROTOCOL";
+  push @net_addr, "192.0.2.0";       push @net_mask, "255.255.255.0";   push @net_name, "TEST-NET-1";
+  push @net_addr, "192.88.99.0";     push @net_mask, "255.255.255.0";   push @net_name, "RESERVED";
+  push @net_addr, "192.168.0.0";     push @net_mask, "255.255.0.0";     push @net_name, "PRIVATE";
+  push @net_addr, "192.18.0.0";      push @net_mask, "255.255.254.0";   push @net_name, "BENCHMARK";
+  push @net_addr, "192.51.100.0";    push @net_mask, "255.255.255.0";   push @net_name, "TEST-NET-2";
+  push @net_addr, "203.0.113.0";     push @net_mask, "255.255.255.0";   push @net_name, "TEST-NET-3";
+  push @net_addr, "224.0.0.0";       push @net_mask, "240.0.0.0";       push @net_name, "MULTICAST";
+  push @net_addr, "240.0.0.0";       push @net_mask, "240.0.0.0";       push @net_name, "RESERVED";
+  push @net_addr, "255.255.255.255"; push @net_mask, "255.255.255.255"; push @net_name, "LIMITED BROADCAST";
+}
+
+
+#------------------------------------------------------------------------------
+# sub get_net_interfaces()
+#
+# Makes a list of network interfaces
+#------------------------------------------------------------------------------
+
+sub get_net_interfaces
+{
+  my $self = shift;
+
+  return @{ $self->{interfaces} } if ($self and exists $self->{Interfaces});
+
+  my %netsettings;
+
+  &General::readhash("${General::swroot}/ethernet/settings", \%netsettings);
+
+  my @interfaces = ( 'green0' );
+  my $config_type = $netsettings{'CONFIG_TYPE'};
+
+  if ($netsettings{'RED_TYPE'} ne 'PPPOE')
+  {
+    if ($netsettings{'RED_DEV'} ne $netsettings{'GREEN_DEV'})
+    {
+      if ($netsettings{'RED_DEV'} eq 'red0')
+      {
+        push @interfaces, 'red0';
+      }
+      else
+      {
+        push @interfaces, 'ppo0';
+      }
+    }
+  }
+  else
+  {
+    push @interfaces, 'ppp0';
+  }
+
+  if ($config_type == 3 or $config_type == 4)
+  {
+    push @interfaces, 'blue0';
+  }
+
+  if ($config_type == 2 or $config_type == 4)
+  {
+    push @interfaces, 'orange0';
+  }
+
+  $self->{interfaces} = [ @interfaces ] if ($self);
+  return @interfaces;
 }
 
 1;

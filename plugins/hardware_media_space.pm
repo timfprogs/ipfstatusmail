@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -33,8 +33,8 @@ package Hardware_Media_Space;
 # Function prototypes
 ############################################################################
 
-sub space( $$ );
-sub inodes( $$ );
+sub space( $$$ );
+sub inodes( $$$ );
 
 ############################################################################
 # BEGIN Block
@@ -70,7 +70,7 @@ sub BEGIN
 ############################################################################
 
 #------------------------------------------------------------------------------
-# sub space( this, min_percent )
+# sub space( this, param, min_percent )
 #
 # Adds the disk usage in terms of space used.
 #
@@ -80,9 +80,10 @@ sub BEGIN
 #                free
 #------------------------------------------------------------------------------
 
-sub space( $$ )
+sub space( $$$ )
 {
   my $message     = shift;
+  my $param       = shift;
   my $min_percent = 100 - shift;
   my @lines;
 
@@ -111,7 +112,7 @@ sub space( $$ )
 
 
 #------------------------------------------------------------------------------
-# sub inodes( this, min_percent )
+# sub inodes( this, param, min_percent )
 #
 # Adds the disk usage in terms of inodes used.
 #
@@ -121,9 +122,10 @@ sub space( $$ )
 #                free
 #------------------------------------------------------------------------------
 
-sub inodes( $$ )
+sub inodes( $$$ )
 {
   my $message     = shift;
+  my $param       = shift;
   my $min_percent = 100 - shift;
   my @lines;
 
@@ -132,7 +134,9 @@ sub inodes( $$ )
   foreach my $line (`df -i`)
   {
     my @fields = split /\s+/, $line, 6;
-    next if ($fields[1] == 0);
+
+    next if ($fields[4] eq '-');
+
     if ($fields[4] =~ m/\d+\%/)
     {
       my ($percent) = $fields[4] =~ m/(\d+)\%/;

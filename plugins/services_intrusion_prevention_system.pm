@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -52,6 +52,8 @@ use constant { SEC    => 0,
                ISDST  => 8,
                MONSTR => 9 };
 
+my $max_log_weeks = 52;
+
 ############################################################################
 # BEGIN Block
 #
@@ -63,7 +65,7 @@ sub BEGIN
   main::add_mail_item( 'ident'      => 'services-ips-alerts',
                        'section'    => $Lang::tr{'services'},
                        'subsection' => $Lang::tr{'intrusion detection system'},
-                       'item'       => $Lang::tr{'statusmail ips alerts'},
+                       'item'       => $Lang::tr{'statusmail alerts'},
                        'function'   => \&alerts,
                        'option'     => { 'type'   => 'integer',
                                          'name'   => $Lang::tr{'statusmail ips min priority'},
@@ -86,8 +88,6 @@ sub get_log( $ )
   my ($this) = @_;
 
 # There's only one data item, so don't use the cache
-#  my $data = $this->cache( 'ips-alerts' );
-#  return $data if (defined $data);
 
   my $name = '/var/log/suricata/fast.log';
 
@@ -103,21 +103,23 @@ sub get_log( $ )
   my $end_time   = $this->get_period_end;
   my @stats;
 
-  for (my $filenum = $this->get_number_weeks ; $filenum >= 0 ; $filenum--)
+  for (my $filenum = $max_log_weeks ; $filenum >= 0 ; $filenum--)
   {
     my $filename = $filenum < 1 ? $name : "$name.$filenum";
 
     if (-r "$filename.gz")
     {
-      @stats = stat( _ );
-      next if ($stats[9] < $start_time);
+      my $mtime = (stat( _ ))[9];
+      next if ($mtime < $start_time);
 
       open IN, "gzip -dc $filename.gz |" or next;
     }
     elsif (-r $filename)
     {
-      @stats = stat( _ );
-      open IN, '<', $filename or next;
+      my $mtime = (stat( _ ))[9];
+      next if ($mtime < $start_time);
+
+      open IN, $filename or next;
     }
     else
     {
@@ -165,7 +167,7 @@ sub get_log( $ )
       next if ($time < $start_time);
       last if ($time > $end_time);
 
-      my $timestr = "$mon/$day $hour:$min:$sec";
+      my $timestr = "$mon/$day $hour:$min";
 
       $info{total}++;
 
@@ -196,9 +198,9 @@ sub get_log( $ )
 
 #------------------------------------------------------------------------------
 
-sub alerts( $$ )
+sub alerts( $$$ )
 {
-  my ($self, $min_priority) = @_;
+  my ($self, $param, $min_priority) = @_;
   my @table;
 
   use Sort::Naturally;
@@ -219,7 +221,7 @@ sub alerts( $$ )
     my $percent  = int( 100 * $count / $$stats{total} + 0.5);
 
     last if ($priority > $min_priority);
-    
+
     $message = $self->split_string( $message, 40 );
 
     push @table, [ $sid, $priority, $message, $count, $percent, $first, $last ];
@@ -228,10 +230,10 @@ sub alerts( $$ )
   if (@table > 2)
   {
     $self->add_table( @table );
-    
+
     return 1;
   }
-  
+
   return 0;
 }
 

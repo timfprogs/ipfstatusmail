@@ -22,10 +22,10 @@
 #                                                                          #
 ############################################################################
 
-require "${General::swroot}/lang.pl";
-
 use strict;
-use warnings;
+#use warnings;
+
+require "${General::swroot}/lang.pl";
 
 package System_Kernel;
 
@@ -74,7 +74,7 @@ sub get_log( $ )
   my %info;
   my $line;
 
-  while ($line = $this->get_message_log_line)
+  while ($line = $this->get_message_log_line( 'messages' ))
   {
     next unless ($line);
     next unless ($line =~ m/ kernel: /);

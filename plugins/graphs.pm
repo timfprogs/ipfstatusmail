@@ -56,13 +56,7 @@ sub BEGIN
   my $config_type = $netsettings{'CONFIG_TYPE'};
 
   my %common_options = ( 'section'    => $Lang::tr{'graph'},
-                         'format'     => 'html',
-                         'option'     => { 'type'   => 'select',
-                                           'name'   => $Lang::tr{'statusmail period'},
-                                           'values' => [ "$Lang::tr{'hour'}:hour",
-                                                         "$Lang::tr{'day'}:day",
-                                                         "$Lang::tr{'week'}:week",
-                                                         "$Lang::tr{'year'}:year" ] } );
+                         'format'     => 'html' );
 
   #----------------------------------------------------------------------------
   # Network
@@ -249,13 +243,13 @@ sub BEGIN
                          'ident'       => "graph-disk-access-$name",
                          'subsection'  => $Lang::tr{'statusmail disk access'},
                          'item'        => $name,
-                         'function'    => sub { my ($this, $period) = @_; diskaccess( $this, $name, $period ); } );
+                         'function'    => sub { my ($this, $dummy) = @_; diskaccess( $this, $name ); } );
 
     main::add_mail_item( %common_options,
                          'ident'       => "graph-disk-temp-$name",
                          'subsection'  => $Lang::tr{'statusmail disk temperature'},
                          'item'        => $name,
-                         'function'    => sub { my ($this, $period) = @_; disktemp( $this, $name, $period ); } );
+                         'function'    => sub { my ($this, $dummy) = @_; disktemp( $this, $name ); } );
   }
 
 # Other graphs that aren't available.
@@ -273,6 +267,36 @@ sub BEGIN
 # Code
 ############################################################################
 
+sub calc_period( $ )
+{
+  my ($this) = @_;
+  my $period;
+
+  if ($this->{total_days} <= 0.05)
+  {
+    $period = 'hour';
+  }
+  elsif ($this->{total_days} <= 1)
+  {
+    $period = 'day';
+  }
+  elsif ($this->{total_days} <= 7)
+  {
+    $period = 'week'
+  }
+  elsif ($this->{total_days} <= 30)
+  {
+    $period = 'month'
+  }
+  else
+  {
+    $period = 'year';
+  }
+
+  return $period;
+}
+
+
 #------------------------------------------------------------------------------
 # sub add_graph( object, interface, period )
 #------------------------------------------------------------------------------
@@ -282,6 +306,8 @@ sub add_graph( $$$$@ )
   my ($this, $function, $name, $alternate, @params) = @_;
 
   my $from_child;
+
+  push @params, calc_period( $this );
 
   my $pid = open( $from_child, "-|" );
 
@@ -314,11 +340,11 @@ sub add_graph( $$$$@ )
 # Adds a graph of the ppp0 interface
 #------------------------------------------------------------------------------
 
-sub ppp0( $$ )
+sub ppp0( $$$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ppp0_if.png', 'ppp0 interface throughput', 'ppp0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'ppp0_if.png', 'ppp0 interface throughput', 'ppp0' );
 
   return 1;
 }
@@ -332,9 +358,9 @@ sub ppp0( $$ )
 
 sub red0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'red0_if.png', 'red0 interface throughput', 'red0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'red0_if.png', 'red0 interface throughput', 'red0' );
 
   return 1;
 }
@@ -348,9 +374,9 @@ sub red0( $$ )
 
 sub green0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'green0_if.png', 'green0 interface throughput', 'green0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'green0_if.png', 'green0 interface throughput', 'green0' );
 
   return 1;
 }
@@ -364,9 +390,9 @@ sub green0( $$ )
 
 sub blue0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'blue0_if.png', 'blue0 interface throughput', 'blue0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'blue0_if.png', 'blue0 interface throughput', 'blue0' );
 
   return 1;
 }
@@ -380,9 +406,9 @@ sub blue0( $$ )
 
 sub orange0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'orange0_if.png', 'orange0 interface throughput', 'orange0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'orange0_if.png', 'orange0 interface throughput', 'orange0' );
 
   return 1;
 }
@@ -396,9 +422,9 @@ sub orange0( $$ )
 
 sub ipsec0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0_if.png', 'ipsec0 interface throughput', 'ipsec0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0_if.png', 'ipsec0 interface throughput', 'ipsec0' );
 
   return 1;
 }
@@ -412,9 +438,9 @@ sub ipsec0( $$ )
 
 sub tun0( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'tun0_if.png', 'tun0 interface throughput', 'tun0', $period );
+  add_graph( $this, \&Graphs::updateifgraph, 'tun0_if.png', 'tun0 interface throughput', 'tun0' );
 
   return 1;
 }
@@ -428,9 +454,9 @@ sub tun0( $$ )
 
 sub cpu_usage( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatecpugraph, 'cpu_usage.png', "CPU $Lang::tr{'graph'}", $period );
+  add_graph( $this, \&Graphs::updatecpugraph, 'cpu_usage.png', "CPU $Lang::tr{'graph'}" );
 
   return 1;
 }
@@ -444,9 +470,9 @@ sub cpu_usage( $$ )
 
 sub cpu_freq( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatecpufreqgraph, 'cpu_freq.png', "CPU $Lang::tr{'frequency'}", $period );
+  add_graph( $this, \&Graphs::updatecpufreqgraph, 'cpu_freq.png', "CPU $Lang::tr{'frequency'}" );
 
   return 1;
 }
@@ -460,9 +486,9 @@ sub cpu_freq( $$ )
 
 sub cpu_load( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateloadgraph,, 'cpu_load.png', "Load $Lang::tr{'graph'}", $period );
+  add_graph( $this, \&Graphs::updateloadgraph,, 'cpu_load.png', "Load $Lang::tr{'graph'}" );
 
   return 1;
 }
@@ -476,9 +502,9 @@ sub cpu_load( $$ )
 
 sub fw_hits( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatefwhitsgraph, 'fw_hits.png', $Lang::tr{'firewallhits'}, $period );
+  add_graph( $this, \&Graphs::updatefwhitsgraph, 'fw_hits.png', $Lang::tr{'firewallhits'} );
 
   return 1;
 }
@@ -492,9 +518,9 @@ sub fw_hits( $$ )
 
 sub therm( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatethermaltempgraph, 'therm.png', "ACPI Thermal-Zone Temp", $period );
+  add_graph( $this, \&Graphs::updatethermaltempgraph, 'therm.png', "ACPI Thermal-Zone Temp" );
 
   return 1;
 }
@@ -508,9 +534,9 @@ sub therm( $$ )
 
 sub hwtemp( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwtempgraph, 'hw_temp.png', 'hwtemp', $period );
+  add_graph( $this, \&Graphs::updatehwtempgraph, 'hw_temp.png', 'hwtemp' );
 
   return 1;
 }
@@ -524,9 +550,9 @@ sub hwtemp( $$ )
 
 sub hwfan( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwfangraph, 'hw_fan.png', 'hwfan', $period );
+  add_graph( $this, \&Graphs::updatehwfangraph, 'hw_fan.png', 'hwfan' );
 
   return 1;
 }
@@ -540,9 +566,9 @@ sub hwfan( $$ )
 
 sub hwvolt( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwvoltgraph, 'hw_volt.png', 'hw volt', $period );
+  add_graph( $this, \&Graphs::updatehwvoltgraph, 'hw_volt.png', 'hw volt' );
 
   return 1;
 }
@@ -556,9 +582,9 @@ sub hwvolt( $$ )
 
 sub entropy( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateentropygraph, 'entropy.png', $Lang::tr{'entropy'}, $period );
+  add_graph( $this, \&Graphs::updateentropygraph, 'entropy.png', $Lang::tr{'entropy'} );
 
   return 1;
 }
@@ -572,9 +598,9 @@ sub entropy( $$ )
 
 sub memory( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatememorygraph, 'memory.png', $Lang::tr{'memory'}, $period );
+  add_graph( $this, \&Graphs::updatememorygraph, 'memory.png', $Lang::tr{'memory'} );
 
   return 1;
 }
@@ -588,41 +614,41 @@ sub memory( $$ )
 
 sub swap( $$ )
 {
-  my ($this, $period) = @_;
+  my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateswapgraph, 'swap.png', $Lang::tr{'swap'}, $period );
+  add_graph( $this, \&Graphs::updateswapgraph, 'swap.png', $Lang::tr{'swap'} );
 
   return 1;
 }
 
 
 #------------------------------------------------------------------------------
-# sub diskaccess( $$$ )
+# sub diskaccess( $$ )
 #
 # Adds a graph of the disk access rate
 #------------------------------------------------------------------------------
 
-sub diskaccess( $$$ )
+sub diskaccess( $$ )
 {
-  my ($this, $name, $period) = @_;
+  my ($this, $name) = @_;
 
-  add_graph( $this, \&Graphs::updatediskgraph, "disk_access_$name.png", $name, $name, $period );
+  add_graph( $this, \&Graphs::updatediskgraph, "disk_access_$name.png", $name, $name );
 
   return 1;
 }
 
 
 #------------------------------------------------------------------------------
-# sub updatehddgraph( $$$ )
+# sub updatehddgraph( $$ )
 #
 # Adds a graph of the disk temperature
 #------------------------------------------------------------------------------
 
-sub disktemp( $$$ )
+sub disktemp( $$ )
 {
-  my ($this, $name, $period) = @_;
+  my ($this, $name) = @_;
 
-  add_graph( $this, \&Graphs::updatehddgraph, "disk_temp_$name.png", $name, $name, $period );
+  add_graph( $this, \&Graphs::updatehddgraph, "disk_temp_$name.png", $name, $name );
 
   return 1;
 }

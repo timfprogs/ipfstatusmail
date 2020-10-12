@@ -22,10 +22,10 @@
 #                                                                          #
 ############################################################################
 
-require "${General::swroot}/lang.pl";
-
 use strict;
-use warnings;
+#use warnings;
+
+require "${General::swroot}/lang.pl";
 
 package System_Ssh;
 
@@ -83,7 +83,7 @@ sub get_log( $ )
   my $line;
   my ($type, $user, $from);
 
-  while ($line = $this->get_message_log_line)
+  while ($line = $this->get_message_log_line( 'messages' ))
   {
     next unless ($line);
     next unless ($line =~ m/ sshd/);

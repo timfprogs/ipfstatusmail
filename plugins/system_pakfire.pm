@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -79,7 +79,7 @@ sub core( $ )
   my $update_list_file = '/opt/pakfire/db/lists/core-list.db';
 
   return 0 unless (-r $installed_file and -r $update_list_file);
-  
+
   open IN, '<', $installed_file or warn "Can't open current core version file: $!";
 
   my $current = <IN>;

@@ -41,6 +41,7 @@ use strict;
 use warnings;
 
 use Sys::Syslog qw(:standard :macros);
+#use Posix;
 
 use lib "/usr/lib/statusmail";
 
@@ -63,6 +64,7 @@ my $mailsettings         = "${General::swroot}/dma/mail.conf";
 my $contactsettings      = "${General::swroot}/statusmail/contact_settings";
 my $schedulesettings     = "${General::swroot}/statusmail/schedule_settings";
 my $debug                = 0;
+my $run_as               = "nobody";
 
 ############################################################################
 # Function prototypes
@@ -97,6 +99,21 @@ my %mailsettings  = ();
 
 openlog( "statusmail", "nofatal", LOG_USER);
 log_message LOG_INFO, "Starting log and status email processing";
+
+# Get user and group id of the user.
+my ( $uid, $gid ) = ( getpwnam $run_as )[ 2, 3 ];
+
+# Check if the script is currently running as root.
+if ( $> == 0 )
+{
+  # Drop privileges and switch to the specified user and group.
+  POSIX::setgid( $gid );
+  POSIX::setuid( $uid );
+}
+
+# Reduce the priority
+
+setpriority 0, 0, getpriority( 0, 0 ) + 4;
 
 # Check for existence of settings files
 
@@ -222,6 +239,7 @@ sub execute_schedule( $$ )
                                 'to'                 => [ @contacts ],
                                 'sender'             => $mailsettings{'SENDER'},
                                 'max_lines_per_item' => $$schedule{'lines'},
+                                'enable_line_limit'  => 1,
                                 'stylesheet'         => $stylesheet );
 
   if (not $message)
@@ -253,7 +271,8 @@ sub execute_schedule( $$ )
 
         # Is the item enabled?
 
-        my $key = $sections{$section}{$subsection}{$item}{'ident'};
+        my $key   = $sections{$section}{$subsection}{$item}{'ident'};
+        my $param = $sections{$section}{$subsection}{$item}{'param'};
 
         next unless (exists $$schedule{"enable_$key"} and $$schedule{"enable_$key"} eq 'on');
         next unless ($sections{$section}{$subsection}{$item}{'format'} eq 'both' or
@@ -269,11 +288,11 @@ sub execute_schedule( $$ )
 
         if (exists $$schedule{"value_$key"})
         {
-          $status += &$function( $message, $$schedule{"value_$key"} );
+          $status += &$function( $message, $param, $$schedule{"value_$key"} );
         }
         else
         {
-          $status += &$function( $message );
+          $status += &$function( $message, $param );
         }
       }
 
@@ -353,10 +372,12 @@ sub add_mail_item( % )
   }
 
   $params{'format'} = 'both' unless (exists $params{'format'});
+  $params{'param'}  = ''     unless (exists $params{'param'});
 
   # Record that the option exists
 
   $sections{$params{'section'}}{$params{'subsection'}}{$params{'item'}} = { 'function' => $params{'function'},
+                                                                            'param'    => $params{'param'},
                                                                             'format'   => $params{'format'},
                                                                             'ident'    => $params{'ident'} };
 }
@@ -403,7 +424,7 @@ sub log_message( $$ )
 #------------------------------------------------------------------------------
 # sub debug( level, message )
 #
-# Optionally logs a debug message
+# Optionally logs a debug message.
 #
 # Parameters:
 #   level   Debug level
@@ -415,7 +436,7 @@ sub debug( $$ )
   my ($level, $message) = @_;
 
   if (($level <= $debug) or
-      ($level == 1 and -t STDIN))
+      ($level <= 2 and -t STDIN))
   {
     log_message LOG_DEBUG, $message;
   }

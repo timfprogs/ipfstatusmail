@@ -22,10 +22,10 @@
 #                                                                          #
 ############################################################################
 
-require "${General::swroot}/lang.pl";
-
 use strict;
-use warnings;
+#use warnings;
+
+require "${General::swroot}/lang.pl";
 
 package Services_Urlfilter;
 
@@ -100,8 +100,9 @@ sub get_log( $ )
   return $data if (defined $data);
 
   my %info;
-  my $weeks      = $this->get_number_weeks;
-  my @start_time = $this->get_period_start;;
+  my $weeks      = 52;
+  my @start_time = $this->get_period_start;
+  my $start_time = $this->get_period_start;
   my @end_time   = $this->get_period_end;
 
   # Iterate over the log files
@@ -118,10 +119,16 @@ sub get_log( $ )
 
       if (-r "$filename.gz")
       {
+        my $mtime = (stat( _ ))[9];
+        next if ($mtime < $start_time);
+
         open IN, "gzip -dc $filename.gz |" or next;
       }
       elsif (-r $filename)
       {
+        my $mtime = (stat( _ ))[9];
+        next if ($mtime < $start_time);
+
         open IN, '<', $filename or next;
       }
       else
@@ -140,14 +147,14 @@ sub get_log( $ )
         # in hour boundaries this doesn't matter.
 
         next if (($year <  ($start_time[YEAR]+1900)) or
-                ($year == ($start_time[YEAR]+1900) and $mon <  ($start_time[MON]+1)) or
-                ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day <  $start_time[MDAY]) or
-                ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day == $start_time[MDAY] and $hour < $start_time[HOUR]));
+                 ($year == ($start_time[YEAR]+1900) and $mon <  ($start_time[MON]+1)) or
+                 ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day <  $start_time[MDAY]) or
+                 ($year == ($start_time[YEAR]+1900) and $mon == ($start_time[MON]+1) and $day == $start_time[MDAY] and $hour < $start_time[HOUR]));
 
         last if (($year >  ($end_time[YEAR]+1900)) or
-                ($year == ($end_time[YEAR]+1900) and $mon >  ($end_time[MON]+1)) or
-                ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day >  $end_time[MDAY]) or
-                ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day == $end_time[MDAY] and $hour > $end_time[HOUR]));
+                 ($year == ($end_time[YEAR]+1900) and $mon >  ($end_time[MON]+1)) or
+                 ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day >  $end_time[MDAY]) or
+                 ($year == ($end_time[YEAR]+1900) and $mon == ($end_time[MON]+1) and $day == $end_time[MDAY] and $hour > $end_time[HOUR]));
 
         # Is it an entry we're interested in?
 
@@ -186,7 +193,7 @@ sub get_log( $ )
 
 
 #------------------------------------------------------------------------------
-# sub clients( this, min_count )
+# sub clients( this, param, min_count )
 #
 # Output information on the systems trying to access forbidden destinations.
 #
@@ -196,9 +203,9 @@ sub get_log( $ )
 #              number of destinations
 #------------------------------------------------------------------------------
 
-sub clients( $$ )
+sub clients( $$$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self, $param, $min_count) = @_;
   my @table;
 
   use Sort::Naturally;
@@ -231,7 +238,7 @@ sub clients( $$ )
 
 
 #------------------------------------------------------------------------------
-# sub destinations( this, min_count )
+# sub destinations( this, param, min_count )
 #
 # Output information on the forbidden destinations being accessed.
 #
@@ -241,9 +248,9 @@ sub clients( $$ )
 #              number of times.
 #------------------------------------------------------------------------------
 
-sub destinations( $$ )
+sub destinations( $$$ )
 {
-  my ($self, $min_count) = @_;
+  my ($self, $param, $min_count) = @_;
   my @table;
 
   use Sort::Naturally;

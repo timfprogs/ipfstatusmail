@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -111,7 +111,6 @@ sub BEGIN
 sub services( $ )
 {
   my $message = shift;
-
   my @output;
 
   if (not $read_netsettings)
@@ -132,6 +131,7 @@ sub services( $ )
   # Item title and table heading
 
   $message->add_title( $Lang::tr{'services'} );
+  $message->enable_line_limit( 0 );
 
   if ($message->is_html)
   {
@@ -148,7 +148,7 @@ sub services( $ )
   foreach my $key (sort keys %servicenames)
   {
     my $shortname = $servicenames{$key};
-   
+
     my @status = isrunning( $shortname );
 
     if ($message->is_html)
@@ -179,6 +179,8 @@ sub services( $ )
     @output = ();
 
     $message->add_title( "Addon - $Lang::tr{'services'}" );
+    $message->enable_line_limit( 0 );
+
     push @output, "<table>\n";
     push @output,  "<tr><th align='left'>$Lang::tr{'services'}</th><th>$Lang::tr{'status'}</th><th>PID</th><th>$Lang::tr{'memory'}</th></tr>\n";
   }
@@ -188,6 +190,7 @@ sub services( $ )
     @output = ();
 
     $message->add_title( "Addon - $Lang::tr{'services'}" );
+    $message->enable_line_limit( 0 );
 
     push @output, [ $Lang::tr{'services'}, $Lang::tr{'status'}, '', $Lang::tr{'memory'} ];
   }
@@ -195,6 +198,8 @@ sub services( $ )
   # Get the status of the addons
 
   my @pak = `find /opt/pakfire/db/installed/meta-* 2>/dev/null | cut -d"-" -f2`;
+
+  my $do_output = 0;
 
   foreach my $pak (@pak)
   {
@@ -206,10 +211,12 @@ sub services( $ )
     foreach my $key (@services)
     {
       # blacklist some packages
-      
+
       chomp($key);
 
       next if ( $key eq 'squid' );
+
+      $do_output = 1;
 
       my @status = isrunningaddon( $key );
 
@@ -233,13 +240,16 @@ sub services( $ )
 
   push @output,  "</table>\n" if ($message->is_html);
 
-  if ($message->is_html)
+  if ($do_output)
   {
-    $message->add( @output );
-  }
-  else
-  {
-    $message->add_table( @output );
+    if ($message->is_html)
+    {
+      $message->add( @output );
+    }
+    else
+    {
+      $message->add_table( @output );
+    }
   }
 
   return 1;

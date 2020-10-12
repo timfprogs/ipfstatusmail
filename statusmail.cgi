@@ -69,7 +69,7 @@ my $mailsettings         = "${General::swroot}/dma/mail.conf";
 my $mainsettings         = "${General::swroot}/main/settings";
 my $plugin_dir           = '/usr/lib/statusmail/plugins';
 my $gpg                  = "/usr/bin/gpg --homedir ${General::swroot}/statusmail/keys";
-my $execute              = '/usr/local/bin/statusmail.pl';
+my $execute              = '/usr/local/bin/statusmail';
 my $tmpdir               = '/var/tmp';
 
 ###############################################################################

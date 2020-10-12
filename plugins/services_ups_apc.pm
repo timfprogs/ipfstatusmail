@@ -18,12 +18,12 @@
 # along with IPFire; if not, write to the Free Software                    #
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA #
 #                                                                          #
-# Copyright (C) 2019                                                       #
+# Copyright (C) 2018 - 2019 The IPFire Team                                #
 #                                                                          #
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 require "${General::swroot}/lang.pl";
 
@@ -37,14 +37,11 @@ package Services_Apcups;
 
 sub BEGIN
 {
-  if (-e '/sbin/apcupsd')
-  {
-    main::add_mail_item( 'ident'      => 'services-apcupsd-events',
-                         'section'    => $Lang::tr{'services'},
-                         'subsection' => 'APC UPS',
-                         'item'       => $Lang::tr{'statusmail events'},
-                         'function'   => \&events );
-  }
+  main::add_mail_item( 'ident'      => 'services-apcupsd-events',
+                        'section'    => $Lang::tr{'services'},
+                        'subsection' => 'APC UPS',
+                        'item'       => $Lang::tr{'statusmail events'},
+                        'function'   => \&ups_events );
 }
 
 ############################################################################
@@ -52,7 +49,7 @@ sub BEGIN
 ############################################################################
 
 #---------------------------------------------------------------------------
-# sub events( this )
+# sub ups_events( this )
 #
 # Output apcupsd events
 #
@@ -60,7 +57,7 @@ sub BEGIN
 #   this  message object
 #---------------------------------------------------------------------------
 
-sub events( $ )
+sub ups_events
 {
   my ($this) = @_;
   my $line;
@@ -68,10 +65,10 @@ sub events( $ )
 
   push @table, [$Lang::tr{'time'}, $Lang::tr{'statusmail event'}];
 
-  while ($line = $this->get_message_log_line)
+  while ($line = $this->get_message_log_line( 'messages' ))
   {
     next unless ($line);
-    next unless ($line =~ m/^(\w+\s+\d+ \d+:\d+:\d+) \S+ apcupsd\[\d+\]: (.*)/);
+    next unless ($line =~ m/^(\w+\s+\d+ \d+:\d+):\d+ \S+ apcupsd\[\d+\]: (.*)/);
 
     push @table, [$1, $2];
   }

@@ -23,7 +23,7 @@
 ############################################################################
 
 use strict;
-use warnings;
+#use warnings;
 
 use MIME::Lite;
 use IPC::Open2;
@@ -93,9 +93,13 @@ sub new( @ )
                    'skip_blank_subsections' => 0,
                    'image_file'             => 'img0000',
                    'max_lines_per_item'     => 100,
+                   'enable_line_limit'      => 0,
+                   'indent'                 => 0,
                    @_ };
 
   bless( $self, $class );
+
+  $self->{'item_enable_line_limit'} = $self->{'enable_line_limit'};
 
   if ($self->{'format'} eq 'html')
   {
@@ -384,7 +388,7 @@ sub send( $@ )
     close $to_gpg;
 
     $encrypted .= $_ while (<$from_gpg>);
-    
+
     close $from_gpg;
 
     # Create the message that will contain the data and its signature
@@ -442,9 +446,8 @@ sub add_section( $$ )
   {
     # Start new section
 
-    $self->{section}     = "\n$name\n";
-    $self->{section}    .= '-' x length($name);
-    $self->{section}    .= "\n";
+    $self->{section}     = "\n$name\n" . ('-' x length($name)) . "\n";
+    $self->{indent}      = 0;
   }
 
   $self->{subsection}    = '';
@@ -452,7 +455,10 @@ sub add_section( $$ )
 
   $self->{in_section}    = 0;
   $self->{in_subsection} = 0;
-  $self->{in_item}       = 0
+  $self->{in_item}       = 0;
+
+  $self->{sub_indent}    = 0;
+  $self->{item_indent}   = 0;
 }
 
 
@@ -481,15 +487,23 @@ sub add_subsection( $$ )
   }
   else
   {
+    # Terminate old items/subsections
+
+    $self->{indent}     -= 3 if ($self->{item_indent});
+    $self->{indent}     -= 3 if ($self->{sub_indent});
+    $self->{item_indent} = 0;
+
     # Start new subsection
 
-    $self->{subsection}  = "\n  $name\n";
+    $self->{subsection}  = "\n" . (' ' x $self->{indent}) . "$name\n";
+    $self->{indent}     += 3;
+    $self->{sub_indent}  = 1;
   }
 
   $self->{item}          = '';
 
   $self->{in_subsection} = 0;
-  $self->{in_item}       = 0
+  $self->{in_item}       = 0;
 }
 
 
@@ -503,26 +517,33 @@ sub add_subsection( $$ )
 
 sub add_title( $$ )
 {
-  my ($self, $string) = @_;
+  my ($self, $name) = @_;
 
   if ($self->{format} eq 'html')
   {
     # Terminate old item
 
-    $self->{message}    .= "</div>\n" if ($self->{in_item});
+    $self->{message}             .= "</div>\n" if ($self->{in_item});
 
     # Start new item
 
-    $self->{item} = "<div class='item'><h4>$string</h4>\n";
+    $self->{item}                 = "<div class='item'><h4>$name</h4>\n";
   }
   else
   {
+    # Terminate old item
+
+    $self->{indent}              -= 3 if ($self->{item_indent});
+
     # Start new item
 
-    $self->{item} = "\n    $string\n\n";
+    $self->{item}                 = "\n" . (' ' x $self->{indent}) . "$name\n\n";
+    $self->{indent}              += 3;
+    $self->{item_indent}          = 1;
   }
 
-  $self->{in_item}       = 0;
+  $self->{in_item}                = 0;
+  $self->{item_enable_line_limit} = $self->{enable_line_limit};
 }
 
 
@@ -544,46 +565,44 @@ sub add( $@ )
 
   if ($self->{section})
   {
-    $self->{message}      .= $self->{section};
-    $self->{section}       = '';
-    $self->{in_section}    = 1;
-    $self->{in_subsection} = 0;
-    $self->{in_item}       = 0;
+    $self->{message}             .= $self->{section};
+    $self->{section}              = '';
+    $self->{in_section}           = 1;
+    $self->{in_subsection}        = 0;
+    $self->{in_item}              = 0;
   }
 
   if ($self->{subsection})
   {
-    $self->{message}      .= $self->{subsection};
-    $self->{subsection}    = '';
-    $self->{in_subsection} = 1;
-    $self->{in_item}       = 0;
+    $self->{message}             .= $self->{subsection};
+    $self->{subsection}           = '';
+    $self->{in_subsection}        = 1;
+    $self->{in_item}              = 0;
   }
 
   if ($self->{item})
   {
-    $self->{message}   .= $self->{item};
-    $self->{item}       = '';
-    $self->{in_item}    = 1;
+    $self->{message}             .= $self->{item};
+    $self->{item}                 = '';
+    $self->{in_item}              = 1;
   }
 
   # Add the lines
 
   foreach my $line (@lines)
   {
-    $self->{message} .= $line;
+    $self->{message}             .= $line;
   }
 
-  $self->{empty} = 0;
+  $self->{empty}                  = 0;
 }
 
 
 #------------------------------------------------------------------------------
 # sub add_text( lines )
 #
-# Adds the textual lines to the message.  If there are section, subsection or
-# item titles outstanding, they are added, and then the contents of the
-# parameter array is added.  The lines are formatted as plain text with HTML
-# breaks inserted if necessary.
+# Adds the textual lines to the message.  The lines are formatted as plain text
+# with HTML breaks inserted if necessary.
 #------------------------------------------------------------------------------
 
 sub add_text( $@ )
@@ -603,7 +622,7 @@ sub add_text( $@ )
     {
       foreach my $string ( split /[\n\r]+/, $string )
       {
-        $message .= '    ' . $string . "\n";
+        $message .= (' ' x $self->{indent}) . $string . "\n";
       }
     }
   }
@@ -623,6 +642,8 @@ sub add_text( $@ )
 sub add_image( $@ )
 {
   my ($self, %params) = @_;
+
+  return if ($self->{format} ne 'html');
 
   # Add section/subsection/item titles, if they haven't already been added.
 
@@ -862,7 +883,7 @@ sub _add_table_html( $@ )
 
     $text .= "</tr>\n";
     $header_row = 0;
-    last if (++$number_lines > $self->{'max_lines_per_item'});
+    last if ($self->{item_enable_line_limit} and ++$number_lines > $self->{'max_lines_per_item'});
   }
 
   $text .= "</table>\n";
@@ -870,6 +891,7 @@ sub _add_table_html( $@ )
   $self->add( $text );
   $self->{empty}    = 0;
 }
+
 
 #------------------------------------------------------------------------------
 # sub _add_table_text( contents )
@@ -950,7 +972,7 @@ sub _add_table_text( $@ )
       }
     }
 
-    last if (++$number_lines > $self->{'max_lines_per_item'});
+    last if ($self->{item_enable_line_limit} and ++$number_lines > $self->{'max_lines_per_item'});
     $header_row = 0;
   }
 
@@ -981,7 +1003,7 @@ sub _add_table_text( $@ )
       next;
     }
 
-    $text .= '    ';
+    $text .= ' ' x $self->{indent};
 
     for (my $column = 0 ; $column < @fields ; $column++)
     {
@@ -1001,7 +1023,7 @@ sub _add_table_text( $@ )
         $next_fields[$column] = ' ';
       }
 
-      $item = '' unless ($item);
+      $item = '' unless (defined $item);
 
       my $width = length $item;
 
@@ -1049,12 +1071,27 @@ sub _add_table_text( $@ )
       redo;
     }
 
-    last if (++$number_lines > $self->{'max_lines_per_item'});
+    last if ($self->{item_enable_line_limit} and ++$number_lines > $self->{'max_lines_per_item'});
   }
 
   $self->add( $text );
   $self->{empty}    = 0;
 }
 
+
+#------------------------------------------------------------------------------
+# sub enable_line_limit( flag )
+#
+# Enables or disables the limit of lines per item.  This must be called after
+# add_title() but before adding any contents using add(), add_table() or
+# add_table().
+#------------------------------------------------------------------------------
+
+sub enable_line_limit
+{
+  my ($self, $flag) = @_;
+
+  $self->{item_enable_line_limit} = $flag;
+}
 
 1;

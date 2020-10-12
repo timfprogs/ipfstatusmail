@@ -22,16 +22,16 @@
 #                                                                          #
 ############################################################################
 
-require "${General::swroot}/lang.pl";
-
 use strict;
-use warnings;
+#use warnings;
+
+require "${General::swroot}/lang.pl";
 
 package Network_Firewall;
 
 use Time::Local;
-
-require "${General::swroot}/geoip-functions.pl";
+use Sort::Naturally;
+use lib "/usr/lib/statusmail";
 
 ############################################################################
 # BEGIN Block
@@ -41,45 +41,41 @@ require "${General::swroot}/geoip-functions.pl";
 
 sub BEGIN
 {
-  main::add_mail_item( 'ident'      => 'network-firewall-ipaddresses',
-                       'section'    => $Lang::tr{'network'},
-                       'subsection' => $Lang::tr{'firewall'},
-                       'item'       => $Lang::tr{'ip address'},
-                       'function'   => \&addresses,
-                       'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail firewall min count'},
-                                         'min'    => 1,
-                                         'max'    => 1000 } );
+  use StatusMail;
 
-  main::add_mail_item( 'ident'      => 'network-firewall-ports',
-                       'section'    => $Lang::tr{'network'},
-                       'subsection' => $Lang::tr{'firewall'},
-                       'item'       => $Lang::tr{port},
-                       'function'   => \&ports,
-                       'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail firewall min count'},
-                                         'min'    => 1,
-                                         'max'    => 1000 } );
+  my %common_options = ( 'section'    => $Lang::tr{'network'},
+                         'subsection' => $Lang::tr{'firewall'},
+                         'option'     => { 'type'   => 'integer',
+                                           'name'   => $Lang::tr{'statusmail firewall min count'},
+                                           'min'    => 1,
+                                           'max'    => 1000 } );
 
-  main::add_mail_item( 'ident'      => 'network-firewall-countries',
-                       'section'    => $Lang::tr{'network'},
-                       'subsection' => $Lang::tr{'firewall'},
-                       'item'       => $Lang::tr{country},
-                       'function'   => \&countries,
-                       'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail firewall min count'},
-                                         'min'    => 1,
-                                         'max'    => 1000 } );
+  foreach my $interface ( StatusMail::get_net_interfaces() )
+  {
+    main::add_mail_item( %common_options,
+                         'ident'      => 'network-firewall-ipaddresses-' . $interface,
+                         'item'       => "$Lang::tr{'ip address'} - $interface",
+                         'function'   => \&addresses,
+                         'param'      => $interface );
 
-  main::add_mail_item( 'ident'      => 'network-firewall-reason',
-                       'section'    => $Lang::tr{'network'},
-                       'subsection' => $Lang::tr{'firewall'},
-                       'item'       => $Lang::tr{'statusmail firewall reason'},
-                       'function'   => \&reasons,
-                       'option'     => { 'type'   => 'integer',
-                                         'name'   => $Lang::tr{'statusmail firewall min count'},
-                                         'min'    => 1,
-                                         'max'    => 1000 } );
+    main::add_mail_item( %common_options,
+                         'ident'      => 'network-firewall-ports-' . $interface,
+                         'item'       => "$Lang::tr{'port'} - $interface",
+                         'function'   => \&ports,
+                         'param'      => $interface );
+
+    main::add_mail_item( %common_options,
+                         'ident'      => 'network-firewall-countries-' . $interface,
+                         'item'       => "$Lang::tr{country} - $interface",
+                         'function'   => \&countries,
+                         'param'      => $interface );
+
+    main::add_mail_item( %common_options,
+                         'ident'      => 'network-firewall-reason-' . $interface,
+                         'item'       => "$Lang::tr{'statusmail firewall reason'} - $interface",
+                         'function'   => \&reasons,
+                         'param'      => $interface );
+  }
 }
 
 
@@ -88,7 +84,6 @@ sub BEGIN
 ############################################################################
 
 sub get_log( $ );
-sub addresses( $$ );
 
 #------------------------------------------------------------------------------
 # sub get_log( this )
@@ -113,42 +108,41 @@ sub get_log( $ )
   my %info;
   my $line;
 
-  while ($line = $this->get_message_log_line)
+  while ($line = $this->get_message_log_line( 'messages' ))
   {
-    next unless ($line);
-    next unless ($line =~ m/kernel: DROP/);
+    next unless ($line =~ m/kernel: .*IN=/);
 
     my ($time, $rule, $interface, $src_addrs, $dst_port) =
-        $line =~ m/(\w+\s+\d+\s+\d+:\d+:\d+).*DROP_(\w+?)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
-# mmm dd hh:mm:dd ipfire kernel: DROP_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=999.999.999.999 DST=888.888.888.888 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
+        $line =~ m/(\w+\s+\d+\s+\d+:\d+):\d+.*kernel: (.*)\s*IN=(\w+).*SRC=(\d+\.\d+\.\d+\.\d+).*(?:DPT=(\d*))/;
+# mmm dd hh:mm:dd ipfire kernel: BLKLST_SPAMHAUS_EDROPIN=ppp0 OUT= MAC= SRC=999.999.999.999 DST=888.888.888.888 LEN=40 TOS=0x00 PREC=0x00 TTL=248 ID=35549 PROTO=TCP SPT=47851 DPT=28672 WINDOW=1024 RES=0x00 SYN URGP=0 MARK=0xd2
 
     next unless ($src_addrs);
 
-    my $country = GeoIP::lookup( $src_addrs ) || $src_addrs;
+    my $country = $this->ip_to_country( $src_addrs );
 
-    $info{'by_address'}{$src_addrs}{'count'}++;
-    $info{'by_address'}{$src_addrs}{'first'} = $time unless ($info{'by_address'}{$src_addrs}{'first'});
-    $info{'by_address'}{$src_addrs}{'last'}  = $time;
+    $info{'by_address'}{$interface}{$src_addrs}{'count'}++;
+    $info{'by_address'}{$interface}{$src_addrs}{'first'} = $time unless ($info{'by_address'}{$interface}{$src_addrs}{'first'});
+    $info{'by_address'}{$interface}{$src_addrs}{'last'}  = $time;
 
     if ($dst_port)
     {
-      $info{'by_port'}{$dst_port}{'count'}++ ;
-      $info{'by_port'}{$dst_port}{'first'} = $time unless ($info{'by_port'}{$dst_port}{'first'});
-      $info{'by_port'}{$dst_port}{'last'}  = $time;
+      $info{'by_port'}{$interface}{$dst_port}{'count'}++ ;
+      $info{'by_port'}{$interface}{$dst_port}{'first'} = $time unless ($info{'by_port'}{$interface}{$dst_port}{'first'});
+      $info{'by_port'}{$interface}{$dst_port}{'last'}  = $time;
     }
 
     if ($country)
     {
-      $info{'by_country'}{$country}{'count'}++;
-      $info{'by_country'}{$country}{'first'} = $time unless ($info{'by_country'}{$country}{'first'});
-      $info{'by_country'}{$country}{'last'}  = $time;
+      $info{'by_country'}{$interface}{$country}{'count'}++;
+      $info{'by_country'}{$interface}{$country}{'first'} = $time unless ($info{'by_country'}{$interface}{$country}{'first'});
+      $info{'by_country'}{$interface}{$country}{'last'}  = $time;
     }
 
-    $info{'by_rule'}{$rule}{'count'}++;
-    $info{'by_rule'}{$rule}{'first'} = $time unless ($info{'by_rule'}{$rule}{'first'});
-    $info{'by_rule'}{$rule}{'last'}  = $time;
+    $info{'by_rule'}{$interface}{$rule}{'count'}++;
+    $info{'by_rule'}{$interface}{$rule}{'first'} = $time unless ($info{'by_rule'}{$interface}{$rule}{'first'});
+    $info{'by_rule'}{$interface}{$rule}{'last'}  = $time;
 
-    $info{'total'}++;
+    $info{'total'}{$interface}++;
   };
 
   $this->cache( 'network-firewall', \%info );
@@ -158,36 +152,38 @@ sub get_log( $ )
 
 
 #------------------------------------------------------------------------------
-# sub addresses( this, min_count )
+# sub addresses( this, interface, min_count )
 #
 # Output information on blocked addresses.
 #
 # Parameters:
 #   this       message object
+#   interface  nextwork interface
 #   min_count  only output blocked addresses occurring at least this number of
 #              times
 #------------------------------------------------------------------------------
 
-sub addresses( $$ )
+sub addresses
 {
-  my ($self, $min_count) = @_;
-  my @table;
-
-  use Sort::Naturally;
-
-  push @table, ['|', '|', '|', '|', '|', '|'];
-  push @table, [ $Lang::tr{'ip address'}, $Lang::tr{'country'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
+  my ($self, $interface, $min_count) = @_;
+  my $retv = 0;
 
   my $stats = get_log( $self );
 
-  foreach my $address (sort { $$stats{'by_address'}{$b}{'count'} <=> $$stats{'by_address'}{$a}{'count'} ||
-                              ncmp( $b, $a ) } keys %{ $$stats{'by_address'} } )
+  my @table;
+
+  $self->add_title( "$Lang::tr{'ip address'} - $interface" );
+  push @table, ['|', '|', '#', '#', '|', '|'];
+  push @table, [ $Lang::tr{'ip address'}, $Lang::tr{'country'}, $Lang::tr{'count'}, '%', $Lang::tr{'first'}, $Lang::tr{'last'} ];
+
+  foreach my $address (sort { $$stats{'by_address'}{$interface}{$b}{'count'} <=> $$stats{'by_address'}{$interface}{$a}{'count'} ||
+                              ncmp( $b, $a ) } keys %{ $$stats{'by_address'}{$interface} } )
   {
-    my $count   = $$stats{'by_address'}{$address}{'count'};
-    my $country = GeoIP::lookup( $address );
-    my $first   = $$stats{'by_address'}{$address}{'first'};
-    my $last    = $$stats{'by_address'}{$address}{'last'};
-    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
+    my $count   = $$stats{'by_address'}{$interface}{$address}{'count'};
+    my $country = $self->ip_to_country( $address );
+    my $first   = $$stats{'by_address'}{$interface}{$address}{'first'};
+    my $last    = $$stats{'by_address'}{$interface}{$address}{'last'};
+    my $percent = int( 100 * $count / $$stats{'total'}{$interface} + 0.5);
 
     last if ($count < $min_count);
 
@@ -195,14 +191,7 @@ sub addresses( $$ )
 
     $address = "$address\n$name" if ($name);
 
-    if ($country)
-    {
-      $country = GeoIP::get_full_country_name( $country) || $address;
-    }
-    else
-    {
-      $country = $Lang::tr{'unknown'};
-    }
+    $country = Location::Functions::get_full_country_name( $country) || $country;
 
     push @table, [ $address, $country, $count, $percent, $first, $last ];
 
@@ -213,41 +202,45 @@ sub addresses( $$ )
   {
     $self->add_table( @table );
 
-    return 1;
+    $retv = 1;
   }
 
-  return 0;
+  return $retv;
 }
 
 
 #------------------------------------------------------------------------------
-# sub ports( this, min_count )
+# sub ports( this, interface, min_count )
 #
 # Output information on blocked ports.
 #
 # Parameters:
 #   this       message object
+#   interface  nextwork interface
 #   min_count  only output blocked ports occurring at least this number of
 #              times
 #------------------------------------------------------------------------------
 
-sub ports( $$ )
+sub ports( $$$ )
 {
-  my ($self, $min_count) = @_;
-  my @table;
-
-  push @table, ['|', '|', '|', '|', '|'];
-  push @table, [ $Lang::tr{'port'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
+  my ($self, $interface, $min_count) = @_;
+  my $retv = 0;
 
   my $stats = get_log( $self );
 
-  foreach my $port (sort { $$stats{'by_port'}{$b}{'count'} <=> $$stats{'by_port'}{$a}{'count'} ||
-                           ncmp( $b, $a ) } keys %{ $$stats{'by_port'} } )
+  my @table;
+
+  $self->add_title( "$Lang::tr{'port'} - $interface" );
+  push @table, ['|', '#', '#', '|', '|'];
+  push @table, [ $Lang::tr{'port'}, $Lang::tr{'count'}, '%', $Lang::tr{'first'}, $Lang::tr{'last'} ];
+
+  foreach my $port (sort { $$stats{'by_port'}{$interface}{$b}{'count'} <=> $$stats{'by_port'}{$interface}{$a}{'count'} ||
+                          ncmp( $b, $a ) } keys %{ $$stats{'by_port'}{$interface} } )
   {
-    my $count   = $$stats{'by_port'}{$port}{'count'};
-    my $first   = $$stats{'by_port'}{$port}{'first'};
-    my $last    = $$stats{'by_port'}{$port}{'last'};
-    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
+    my $count   = $$stats{'by_port'}{$interface}{$port}{'count'};
+    my $first   = $$stats{'by_port'}{$interface}{$port}{'first'};
+    my $last    = $$stats{'by_port'}{$interface}{$port}{'last'};
+    my $percent = int( 100 * $count / $$stats{'total'}{$interface} + 0.5);
 
     last if ($count < $min_count);
 
@@ -258,44 +251,49 @@ sub ports( $$ )
   {
     $self->add_table( @table );
 
-    return 1;
+    $retv = 1;
   }
 
-  return 0;
+  return $retv;
 }
 
 
 #------------------------------------------------------------------------------
-# sub countries( this, min_count )
+# sub countries( this, interface, min_count )
 #
 # Output information on blocked countries.
 #
 # Parameters:
 #   this       message object
+#   interface  nextwork interface
 #   min_count  only output blocked countries occurring at least this number of
 #              times
 #------------------------------------------------------------------------------
 
-sub countries( $$ )
+sub countries( $$$ )
 {
-  my ($self, $min_count) = @_;
-  my @table;
-
-  push @table, ['<', '|', '|', '|', '|'];
-  push @table, [ $Lang::tr{'country'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
+  my ($self, $interface, $min_count) = @_;
+  my $retv = 0;
 
   my $stats = get_log( $self );
 
-  foreach my $country (sort { $$stats{'by_country'}{$b}{'count'} <=> $$stats{'by_country'}{$a}{'count'} } keys %{ $$stats{'by_country'} } )
+  my @table;
+
+  $self->add_title( "$Lang::tr{'country'} - $interface" );
+  push @table, ['<', '#', '#', '|', '|'];
+  push @table, [ $Lang::tr{'country'}, $Lang::tr{'count'}, '%', $Lang::tr{'first'}, $Lang::tr{'last'} ];
+
+
+  foreach my $country (sort { $$stats{'by_country'}{$interface}{$b}{'count'} <=> $$stats{'by_country'}{$interface}{$a}{'count'} } keys %{ $$stats{'by_country'}{$interface} } )
   {
-    my $count   = $$stats{'by_country'}{$country}{'count'};
-    my $first   = $$stats{'by_country'}{$country}{'first'};
-    my $last    = $$stats{'by_country'}{$country}{'last'};
-    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
+    my $count   = $$stats{'by_country'}{$interface}{$country}{'count'};
+    my $first   = $$stats{'by_country'}{$interface}{$country}{'first'};
+    my $last    = $$stats{'by_country'}{$interface}{$country}{'last'};
+    my $percent = int( 100 * $count / $$stats{'total'}{$interface} + 0.5);
 
     last if ($count < $min_count);
 
-    my $full_country = GeoIP::get_full_country_name( $country) || $country;
+    my $full_country = Location::Functions::get_full_country_name( $country) || $country;
 
     push @table, [ $full_country, $count, $percent, $first, $last ];
   }
@@ -304,40 +302,44 @@ sub countries( $$ )
   {
     $self->add_table( @table );
 
-    return 1;
+    $retv = 1;
   }
 
-  return 0;
+  return $retv;
 }
 
 
 #------------------------------------------------------------------------------
-# sub reasons( this, min_count )
+# sub reasons( this, interface, min_count )
 #
 # Output information on blocked reasons (the IPtable blocking the packet).
 #
 # Parameters:
 #   this       message object
+#   interface  nextwork interface
 #   min_count  only output blocked reasons occurring at least this number of
 #              times
 #------------------------------------------------------------------------------
 
-sub reasons( $$ )
+sub reasons( $$$ )
 {
-  my ($self, $min_count) = @_;
-  my @table;
-
-  push @table, ['<', '|', '|', '|', '|'];
-  push @table, [ $Lang::tr{'statusmail firewall reason'}, $Lang::tr{'count'}, $Lang::tr{'percentage'}, $Lang::tr{'first'}, $Lang::tr{'last'} ];
+  my ($self, $interface, $min_count) = @_;
+  my $retv = 0;
 
   my $stats = get_log( $self );
 
-  foreach my $reason (sort { $$stats{'by_rule'}{$b}{'count'} <=> $$stats{'by_rule'}{$a}{'count'} } keys %{ $$stats{'by_rule'} } )
+  my @table;
+
+  $self->add_title( "$Lang::tr{'statusmail firewall reason'} - $interface" );
+  push @table, ['<', '#', '#', '|', '|'];
+  push @table, [ $Lang::tr{'statusmail firewall reason'}, $Lang::tr{'count'}, '%', $Lang::tr{'first'}, $Lang::tr{'last'} ];
+
+  foreach my $reason (sort { $$stats{'by_rule'}{$interface}{$b}{'count'} <=> $$stats{'by_rule'}{$interface}{$a}{'count'} } keys %{ $$stats{'by_rule'}{$interface} } )
   {
-    my $count   = $$stats{'by_rule'}{$reason}{'count'};
-    my $first   = $$stats{'by_rule'}{$reason}{'first'};
-    my $last    = $$stats{'by_rule'}{$reason}{'last'};
-    my $percent = int( 100 * $count / $$stats{'total'} + 0.5);
+    my $count   = $$stats{'by_rule'}{$interface}{$reason}{'count'};
+    my $first   = $$stats{'by_rule'}{$interface}{$reason}{'first'};
+    my $last    = $$stats{'by_rule'}{$interface}{$reason}{'last'};
+    my $percent = int( 100 * $count / $$stats{'total'}{$interface} + 0.5);
 
     last if ($count < $min_count);
 
@@ -348,10 +350,10 @@ sub reasons( $$ )
   {
     $self->add_table( @table );
 
-    return 1;
+    $retv = 1;
   }
 
-  return 0;
+  return $retv;
 }
 
 1;

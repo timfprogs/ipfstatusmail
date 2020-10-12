@@ -8,7 +8,7 @@ statusmail.fr.pl /var/ipfire/addon-lang root.root 0004
 statusmail.de.pl /var/ipfire/addon-lang root.root 0004
 statusmail.es.pl /var/ipfire/addon-lang root.root 0004
 statusmail.cgi /srv/web/ipfire/cgi-bin root.root 0755
-statusmail.pl /usr/local/bin root.root 0755
+statusmail /usr/local/bin root.root 0755
 statusmail.sh /usr/lib/statusmail root.root 0755
 EX-statusmail.menu /var/ipfire/menu.d nobody.nobody 0644
 EncryptedMail.pm /usr/lib/statusmail nobody.nobody 0644
@@ -20,12 +20,14 @@ play.png /srv/web/ipfire/html/images root.root 0644
 plugins/graphs.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/hardware_media_space.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/network_firewall.pm /usr/lib/statusmail nobody.nobody 0644
-plugins/services-ups-apc.pm /usr/lib/statusmail nobody.nobody 0644
-plugins/services_blocklist_update.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_clamav.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_ids_update.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_intrusion_prevention_system.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/services_ipblacklist_update.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/services_mail.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/services_ups_apc.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/services_urlfilter.pm /usr/lib/statusmail nobody.nobody 0644
+plugins/system_internet.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_kernel.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_pakfire.pm /usr/lib/statusmail nobody.nobody 0644
 plugins/system_ssh.pm /usr/lib/statusmail nobody.nobody 0644
