@@ -689,6 +689,10 @@ sub add_image( $@ )
   {
     $image_name .= '.png';
   }
+  elsif ($params{'type'} eq 'image/svg+xml')
+  {
+    $image_name .= '.svg';
+  }
   else
   {
     return;

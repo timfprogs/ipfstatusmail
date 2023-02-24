@@ -515,6 +515,7 @@ sub add_image
   $image_name .= '.jpg' if ($params{'type'} eq 'image/jpeg');
   $image_name .= '.gif' if ($params{'type'} eq 'image/gif');
   $image_name .= '.png' if ($params{'type'} eq 'image/png');
+  $image_name .= '.svg' if ($params{'type'} eq 'image/svg+xml');
 
   open OUT, '>', "$testdir/$image_name" or die "Can't open image file $image_name: $!";
   binmode( OUT );
