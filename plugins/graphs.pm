@@ -317,7 +317,8 @@ sub add_graph( $$$$@ )
 
     $this->add_image( fh   => $from_child,
                       alt  => $alternate,
-                      type => 'image/png',
+                      # The main Graphs lib generates SVGs.
+                      type => 'image/svg+xml',
                       name => $name );
 
     waitpid( $pid, 0 );
@@ -344,7 +345,7 @@ sub ppp0( $$$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ppp0_if.png', 'ppp0 interface throughput', 'ppp0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'ppp0_if.svg', 'ppp0 interface throughput', 'ppp0' );
 
   return 1;
 }
@@ -360,7 +361,7 @@ sub red0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'red0_if.png', 'red0 interface throughput', 'red0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'red0_if.svg', 'red0 interface throughput', 'red0' );
 
   return 1;
 }
@@ -376,7 +377,7 @@ sub green0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'green0_if.png', 'green0 interface throughput', 'green0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'green0_if.svg', 'green0 interface throughput', 'green0' );
 
   return 1;
 }
@@ -392,7 +393,7 @@ sub blue0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'blue0_if.png', 'blue0 interface throughput', 'blue0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'blue0_if.svg', 'blue0 interface throughput', 'blue0' );
 
   return 1;
 }
@@ -408,7 +409,7 @@ sub orange0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'orange0_if.png', 'orange0 interface throughput', 'orange0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'orange0_if.svg', 'orange0 interface throughput', 'orange0' );
 
   return 1;
 }
@@ -424,7 +425,7 @@ sub ipsec0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0_if.png', 'ipsec0 interface throughput', 'ipsec0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'ipsec0_if.svg', 'ipsec0 interface throughput', 'ipsec0' );
 
   return 1;
 }
@@ -440,7 +441,7 @@ sub tun0( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateifgraph, 'tun0_if.png', 'tun0 interface throughput', 'tun0' );
+  add_graph( $this, \&Graphs::updateifgraph, 'tun0_if.svg', 'tun0 interface throughput', 'tun0' );
 
   return 1;
 }
@@ -456,7 +457,7 @@ sub cpu_usage( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatecpugraph, 'cpu_usage.png', "CPU $Lang::tr{'graph'}" );
+  add_graph( $this, \&Graphs::updatecpugraph, 'cpu_usage.svg', "CPU $Lang::tr{'graph'}" );
 
   return 1;
 }
@@ -472,7 +473,7 @@ sub cpu_freq( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatecpufreqgraph, 'cpu_freq.png', "CPU $Lang::tr{'frequency'}" );
+  add_graph( $this, \&Graphs::updatecpufreqgraph, 'cpu_freq.svg', "CPU $Lang::tr{'frequency'}" );
 
   return 1;
 }
@@ -488,7 +489,7 @@ sub cpu_load( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateloadgraph,, 'cpu_load.png', "Load $Lang::tr{'graph'}" );
+  add_graph( $this, \&Graphs::updateloadgraph,, 'cpu_load.svg', "Load $Lang::tr{'graph'}" );
 
   return 1;
 }
@@ -504,7 +505,7 @@ sub fw_hits( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatefwhitsgraph, 'fw_hits.png', $Lang::tr{'firewallhits'} );
+  add_graph( $this, \&Graphs::updatefwhitsgraph, 'fw_hits.svg', $Lang::tr{'firewallhits'} );
 
   return 1;
 }
@@ -520,7 +521,7 @@ sub therm( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatethermaltempgraph, 'therm.png', "ACPI Thermal-Zone Temp" );
+  add_graph( $this, \&Graphs::updatethermaltempgraph, 'therm.svg', "ACPI Thermal-Zone Temp" );
 
   return 1;
 }
@@ -536,7 +537,7 @@ sub hwtemp( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwtempgraph, 'hw_temp.png', 'hwtemp' );
+  add_graph( $this, \&Graphs::updatehwtempgraph, 'hw_temp.svg', 'hwtemp' );
 
   return 1;
 }
@@ -552,7 +553,7 @@ sub hwfan( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwfangraph, 'hw_fan.png', 'hwfan' );
+  add_graph( $this, \&Graphs::updatehwfangraph, 'hw_fan.svg', 'hwfan' );
 
   return 1;
 }
@@ -568,7 +569,7 @@ sub hwvolt( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatehwvoltgraph, 'hw_volt.png', 'hw volt' );
+  add_graph( $this, \&Graphs::updatehwvoltgraph, 'hw_volt.svg', 'hw volt' );
 
   return 1;
 }
@@ -584,7 +585,7 @@ sub entropy( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateentropygraph, 'entropy.png', $Lang::tr{'entropy'} );
+  add_graph( $this, \&Graphs::updateentropygraph, 'entropy.svg', $Lang::tr{'entropy'} );
 
   return 1;
 }
@@ -600,7 +601,7 @@ sub memory( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updatememorygraph, 'memory.png', $Lang::tr{'memory'} );
+  add_graph( $this, \&Graphs::updatememorygraph, 'memory.svg', $Lang::tr{'memory'} );
 
   return 1;
 }
@@ -616,7 +617,7 @@ sub swap( $$ )
 {
   my ($this, $dummy) = @_;
 
-  add_graph( $this, \&Graphs::updateswapgraph, 'swap.png', $Lang::tr{'swap'} );
+  add_graph( $this, \&Graphs::updateswapgraph, 'swap.svg', $Lang::tr{'swap'} );
 
   return 1;
 }
@@ -632,7 +633,7 @@ sub diskaccess( $$ )
 {
   my ($this, $name) = @_;
 
-  add_graph( $this, \&Graphs::updatediskgraph, "disk_access_$name.png", $name, $name );
+  add_graph( $this, \&Graphs::updatediskgraph, "disk_access_$name.svg", $name, $name );
 
   return 1;
 }
@@ -648,7 +649,7 @@ sub disktemp( $$ )
 {
   my ($this, $name) = @_;
 
-  add_graph( $this, \&Graphs::updatehddgraph, "disk_temp_$name.png", $name, $name );
+  add_graph( $this, \&Graphs::updatehddgraph, "disk_temp_$name.svg", $name, $name );
 
   return 1;
 }
